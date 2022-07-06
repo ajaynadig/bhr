@@ -29,7 +29,7 @@ BHR_rg <- function(trait1_sumstats, trait2_sumstats, annotations, num_blocks = 1
 
   heritability_trait1 <- BHR_h2(trait1_sumstats, annotations = annotations, num_blocks = num_blocks, fixed_genes = sig_genes, genomewide_correction = FALSE, output_jackknife_h2 = TRUE, overdispersion = overdispersion, num_null_conditions = 0, slope_correction = FALSE, all_models = TRUE, gwc_exclusion = NULL)
   heritability_trait2 <- BHR_h2(trait2_sumstats, annotations = annotations, num_blocks = num_blocks, fixed_genes = sig_genes, genomewide_correction = FALSE,output_jackknife_h2 = TRUE, overdispersion = overdispersion, num_null_conditions = 0, slope_correction = FALSE, all_models = TRUE, gwc_exclusion = NULL)
-
+  print("Test")
   #add null moment conditions
   trait1_sumstats = trait1_sumstats[,c("gene","N","gamma_sq","gamma","w_t_beta","burden_score","burden_score_sqrt","overdispersion","chromosome","gene_position")]
   trait1_sumstats$true = TRUE
