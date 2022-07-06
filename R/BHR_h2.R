@@ -33,8 +33,8 @@ BHR_h2 <- function(sumstats, annotations, num_blocks, genomewide_correction, fix
   }
 
   if (num_null_conditions >0) {
-    nullstats = sumstats[,c("gene","N","overdispersion","chromosome","gene_position","variant_variances","betas","trait_type")]
-    truestats = sumstats[,c("gene","N","gamma_sq","w_t_beta","burden_score","overdispersion","chromosome","gene_position","trait_type")]
+    nullstats = sumstats[,c("gene","N","overdispersion","chromosome","gene_position","variant_variances","betas")]
+    truestats = sumstats[,c("gene","N","gamma_sq","w_t_beta","burden_score","overdispersion","chromosome","gene_position")]
     truestats$true = TRUE
   } else{
     truestats = sumstats[,c("gene","N","gamma_sq","w_t_beta","burden_score","overdispersion","chromosome","gene_position")]
@@ -83,7 +83,7 @@ BHR_h2 <- function(sumstats, annotations, num_blocks, genomewide_correction, fix
       }
 
       nullstats$burden_score <- sapply(1:nrow(nullstats),get_null_burdenscore)
-      nullstats_out = nullstats[,c("gene","N","gamma_sq","w_t_beta","burden_score","overdispersion","chromosome","gene_position","trait_type")]
+      nullstats_out = nullstats[,c("gene","N","gamma_sq","w_t_beta","burden_score","overdispersion","chromosome","gene_position")]
       nullstats_out$true = FALSE
 
       sumstats = rbind(sumstats,nullstats_out)
