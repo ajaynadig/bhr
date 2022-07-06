@@ -7,7 +7,7 @@
 
 This repository contains the `BHR` code. To download:
 
-`git clone https://github.com/danjweiner/rv_h2.git`
+`git clone https://github.com/ajaynadig/bhr.git`
 
 ## Elements of a `BHR` analysis
 
