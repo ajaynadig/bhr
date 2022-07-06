@@ -29,8 +29,6 @@ e) **Variance variances** (required column name: `variant_variances`): This is a
 
 f) **Variant per-allele effect sizes** (required column name: `betas`): This is a list of per-allele effect sizes for variants in the gene. The length of the list for each gene is the same as the length of the list of `variant_variances` (see above)
 
-g) **Phenotype label** (required column name: `phenotype_key`): The name of your phenotype associated with the effect sizes in the file
-
 2) *Baseline-BHR*
 
 Overview: A text file, with a row per gene and a column per gene set annotation, with elements equal to 1 to denote gene set membership and 0 otherwise. A *Baseline-BHR* file is required for `BHR`, as failure to control for LD-dependent architecture can lead to bias in heritability estimates (analogous to motivation for baseline model in LD Score Regression). We provide *Baseline-BHR* files with annotations corresponding to 1/5th of the observed/expected loss-of-function distribution (see manuscript). `BHR` will also estimate genetic architecture parameters for annotations in the baseline model.
