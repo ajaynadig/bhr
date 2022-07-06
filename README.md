@@ -72,3 +72,26 @@ BHR(mode = "univariate",
 *Optional flags*
 
 1) `num_blocks`: Number of jackknife blocks (default = 100)
+
+**Bivariate `BHR` analysis (Genetic Correlation)**
+
+Sample command:
+
+```
+BHR(mode = "bivariate", 
+    trait1_sumstats = sumstats_1,
+    trait2_sumstats = sumstats_2
+      annotations = list(baseline, annotation_1))
+```
+
+*Required flags:*
+
+1) `mode`: For bivariate analysis, select "bivariate"
+2) `trait1_sumstats`: The gene-level summary statisics file described above, filtered to phenotype 1
+3)`trait2_sumstats`: The gene-level summary statisics file described above, filtered to phenotype 2
+4) `annotations`: A list of gene annotations, including the baseline file (required), and any additional gene set annotations
+
+*Optional flags*
+
+1) `num_blocks`: Number of jackknife blocks (default = 100)
+
