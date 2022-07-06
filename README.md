@@ -13,17 +13,23 @@ This repository contains the `BHR` code. To download:
 
 1) *Gene-level summary statistics*
 
-Overview: A text file, with a row per gene and column per required variable (note mandatory column names). The gene-level summary statistics are frequently generated from aggregating across variant-level summary statistics -- see below in (section) for overview and scripts. The provided variant-to-gene script automatically generates the following columns:
+Overview: A text file, with a row per gene and column per required variable (note mandatory column names). The gene-level summary statistics are frequently generated from aggregating across variant-level summary statistics.
 
-*Required variables*
+*Required columns*
 
 a) **Gene name** (required column name: `gene`): Any gene naming convention is valid (i.e. ENSEMBL ID), as long as the convention is consistent with that used in Baseline-BHR (see below)
 
-b) **Gene burden score** (required column name: `burden_score`): Sum of the variances of variants in a gene (often restricted to variants of a particular functional class and/or frequency). This is the indepedent variable in the heritability regression.
+b) **Chromosome** (required column name: `chromosome`): The chromosome of the gene
 
-c) **Sum of variance-weighted per-allele effects** (required column name: `w_t_beta`): This is the sum of the effects of variants in a gene, where each per allele effect has been multiplied by the frequency variance of the variant (2p(1-p)). This becomes the dependent variable in the heritability regression after a modest under-the-hood `BHR` transformation (squaring and normalizing by cumulative variant frequencies).
+c) **Gene position in base pairs** (required column name: `gene_position`): The position of the gene in base pairs
 
-d) **Overdispersion** (required column name: `overdispersion`): Weighted mean heterozygosity (weighted by the heterozygosity)
+d) **Phenotype sample size** (required column name: `N`): Phenotype sample size in the association study
+
+e) **Variance variances** (required column name: `variant_variances`): This is a list of variant variances for variants in the gene. The variance variance = 2*p*(1-p), where p it the frequency of the minor allele in the association study. Since this is a list of the variant variances for each variant in the gene, the length of the list should be equal to the number of variants in the gene; note that summary statistics are often stratified by variant frequency and function (i.e., ultra-rare loss-of-function variants), and it is the number of variants in that frequency-function class which are included in the summary statistics.
+
+f) **Variant per-allele effect sizes** (required column name: `betas`): This is a list of per-allele effect sizes for variants in the gene. The length of the list for each gene is the same as the length of the list of `variant_variances` (see above)
+
+g) **Phenotype label** (required column name: `phenotype_key`): The name of your phenotype associated with the effect sizes in the file
 
 2) *Baseline-BHR*
 
@@ -51,7 +57,6 @@ b) **Gene membership annotations** (required column names: no restrictions): 1 o
 
 1) Univariate: estimate heritability and genetic architecture for a single phenotype
 2) Bivariate: estimate cross trait genetic correlation and genetic architecture
-3) Aggregate: estimate average heritability across traits, summed across variant groups (for example, across loss-of-function and missense variants)
 
 **Univariate `BHR` analysis**
 
@@ -68,10 +73,6 @@ BHR(mode = "univariate",
 1) `mode`: For univariate analysis, select "univariate"
 2) `trait1_sumstats`: The gene-level summary statisics file described above, filtered to the phenotype of interest
 3) `annotations`: A list of gene annotations, including the baseline file (required), and any additional gene set annotations
-
-*Optional flags*
-
-1) `num_blocks`: Number of jackknife blocks (default = 100)
 
 **Bivariate `BHR` analysis (Genetic Correlation)**
 
@@ -91,7 +92,4 @@ BHR(mode = "bivariate",
 3) `trait2_sumstats`: The gene-level summary statisics file described above, filtered to phenotype 2
 4)  `annotations`: A list of gene annotations, including the baseline file (required), and any additional gene set annotations
 
-*Optional flags*
-
-1) `num_blocks`: Number of jackknife blocks (default = 100)
 
