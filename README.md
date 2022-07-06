@@ -97,4 +97,6 @@ BHR(mode = "bivariate",
 3) `trait2_sumstats`: The gene-level summary statisics file described above, filtered to phenotype 2
 4)  `annotations`: A list of gene annotations, including the baseline file (required), and any additional gene set annotations
 
+The output of `bivariate` is an R object. Of interest to most users will be:
 
+1) `output_name$rg$rg_mixed` and `output_name$rg$rg_mixed_se`: Reports the burden h2 rg and burden h2 rg standard error for the trait pair
