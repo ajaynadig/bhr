@@ -14,7 +14,8 @@ BHR <- function(mode = NULL,
                 slope_correction = NULL,
                 num_null_conditions = 5,
                 gwc_exclusion = NULL) {
-
+  library(dplyr)
+  library(purrr)
   #compute w_t_beta, burden_score, and overdispersion from betas and variant_variances
 
   trait1_sumstats$w_t_beta = sapply(1:nrow(trait1_sumstats), function(x) sum(trait1_sumstats$variant_variances[[x]]*trait1_sumstats$betas[[x]]))
