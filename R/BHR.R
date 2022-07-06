@@ -1,9 +1,9 @@
 BHR <- function(mode = NULL,
                 trait1_sumstats = NULL,
                 trait2_sumstats = NULL,
-                annotations, 
-                num_blocks = 100, 
-                genomewide_correction = FALSE, 
+                annotations,
+                num_blocks = 100,
+                genomewide_correction = FALSE,
                 fixed_genes = NULL,
                 output_jackknife_h2 = FALSE,
                 ss_list_trait1 = NULL,
@@ -14,19 +14,23 @@ BHR <- function(mode = NULL,
                 slope_correction = NULL,
                 num_null_conditions = 5,
                 gwc_exclusion = NULL) {
-  
+
   #compute w_t_beta, burden_score, and overdispersion from betas and variant_variances
-  
+
   trait1_sumstats$w_t_beta = sapply(1:nrow(trait1_sumstats), function(x) sum(trait1_sumstats$variant_variances[[x]]*trait1_sumstats$betas[[x]]))
   trait1_sumstats$burden_score = sapply(1:nrow(trait1_sumstats), function(x) sum(trait1_sumstats$variant_variances[[x]]))
   trait1_sumstats$overdispersion = sapply(1:nrow(trait1_sumstats), function(x) sum(trait1_sumstats$variant_variances[[x]]^2)/sum(trait1_sumstats$variant_variances[[x]]))
-  
+
+  trait1_sumstats = trait1_sumstats[trait1_sumstats$burden_score > 0 & is.finite(trait1_sumstats$burden_score) & is.finite(trait1_sumstats$w_t_beta) & is.finite(trait1_sumstats$overdispersion),]
+
   if (!is.null(trait2_sumstats)){
     trait2_sumstats$w_t_beta = sapply(1:nrow(trait2_sumstats), function(x) sum(trait2_sumstats$variant_variances[[x]]*trait2_sumstats$betas[[x]]))
     trait2_sumstats$burden_score = sapply(1:nrow(trait2_sumstats), function(x) sum(trait2_sumstats$variant_variances[[x]]))
     trait2_sumstats$overdispersion = sapply(1:nrow(trait2_sumstats), function(x) sum(trait2_sumstats$variant_variances[[x]]^2)/sum(trait2_sumstats$variant_variances[[x]]))
-  }
-  
+    trait2_sumstats = trait2_sumstats[trait2_sumstats$burden_score > 0 & is.finite(trait2_sumstats$burden_score) & is.finite(trait2_sumstats$w_t_beta) & is.finite(trait2_sumstats$overdispersion),]
+
+    }
+
   if (mode == "univariate"){
     output = BHR_h2(trait1_sumstats, annotations, num_blocks, genomewide_correction, fixed_genes,output_jackknife_h2, overdispersion, all_models,num_null_conditions,slope_correction, gwc_exclusion)
     return(output)
@@ -35,10 +39,10 @@ BHR <- function(mode = NULL,
     return(output)
   } else if (mode == "aggregate"){
     output = BHR_meta(ss_list_trait1, trait_list, annotations, num_blocks, genomewide_correction, fixed_genes,  overdispersion, all_models, num_null_conditions, slope_correction, gwc_exclusion)
-    return(output) 
+    return(output)
     } else if (mode == "aggregate-rg"){
       output = BHR_meta_rg(ss_list_trait1,ss_list_trait2, annotations, num_blocks)
-      return(output) 
+      return(output)
     } else {
       return("Please enter a valid mode among: ['univariate','bivariate','aggregate', 'aggregate-rg']")
   }
