@@ -88,8 +88,8 @@ BHR(mode = "bivariate",
 
 1) `mode`: For bivariate analysis, select "bivariate"
 2) `trait1_sumstats`: The gene-level summary statisics file described above, filtered to phenotype 1
-3)`trait2_sumstats`: The gene-level summary statisics file described above, filtered to phenotype 2
-4) `annotations`: A list of gene annotations, including the baseline file (required), and any additional gene set annotations
+3) `trait2_sumstats`: The gene-level summary statisics file described above, filtered to phenotype 2
+4)  `annotations`: A list of gene annotations, including the baseline file (required), and any additional gene set annotations
 
 *Optional flags*
 
