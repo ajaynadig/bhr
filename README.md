@@ -74,6 +74,11 @@ BHR(mode = "univariate",
 2) `trait1_sumstats`: The gene-level summary statisics file described above, filtered to the phenotype of interest
 3) `annotations`: A list of gene annotations, including the baseline file (required), and any additional gene set annotations
 
+The output of `univariate` is an R object. Of interest to most users will be:
+
+1) `output_name$mixed_model$heritabilities`: Reports the burden h2 and burden h2 standard error for each annotation and total heritability
+2) `output_name$mixed_model$enrichments`: Reports the burden h2 enrichment and burden h2 enrichment standard error for each annotation
+
 **Bivariate `BHR` analysis (Genetic Correlation)**
 
 Sample command:
@@ -84,11 +89,6 @@ BHR(mode = "bivariate",
     trait2_sumstats = sumstats_2
       annotations = list(baseline, annotation_1))
 ```
-
-The output is an R object. Of interest to most users will be:
-
-1) `output_name$mixed_model$heritabilities`: Reports the burden h2 and burden h2 standard error for each annotation and total heritability
-2) `output_name$mixed_model$enrichments`: Reports the burden h2 enrichment and burden h2 enrichment standard error for each annotation
 
 *Required flags:*
 
