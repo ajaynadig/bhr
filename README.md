@@ -85,6 +85,11 @@ BHR(mode = "bivariate",
       annotations = list(baseline, annotation_1))
 ```
 
+The output is an R object. Of interest to most users will be:
+
+1) `output_name$mixed_model$heritabilities`: Reports the burden h2 and burden h2 standard error for each annotation and total heritability
+2) `output_name$mixed_model$enrichments`: Reports the burden h2 enrichment and burden h2 enrichment standard error for each annotation
+
 *Required flags:*
 
 1) `mode`: For bivariate analysis, select "bivariate"
