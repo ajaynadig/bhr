@@ -5,9 +5,9 @@
 
 **Setting up `BHR` on your machine**
 
-This repository contains the `BHR` code. To download:
+This repository contains the `BHR` code. To download into an R session, run:
 
-`git clone https://github.com/ajaynadig/bhr.git`
+`devtools::install_github("ajaynadig/bhr")`
 
 ## Elements of a `BHR` analysis
 
