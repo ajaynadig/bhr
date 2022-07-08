@@ -19,9 +19,9 @@ Overview: A text file, with a row per gene and column per required variable (not
 
 a) **Gene name** (required column name: `gene`): Any gene naming convention is valid (i.e. ENSEMBL ID), as long as the convention is consistent with that used in Baseline-BHR (see below)
 
-b) **Chromosome** (required column name: `chromosome`): The chromosome of the gene
+b) **Chromosome** (required column name: `chromosome`): The chromosome of the gene. Note that these values are only used to order genes to divide them into jackknife blocks, so minor variations due to genome build, TSS vs midpoint, etc., should not change results substantially.
 
-c) **Gene position in base pairs** (required column name: `gene_position`): The position of the gene in base pairs
+c) **Gene position in base pairs** (required column name: `gene_position`): The position of the gene in base pairs. Note that these values are only used to order genes to divide them into jackknife blocks, so minor variations due to genome build, TSS vs midpoint, etc., should not change results substantially.
 
 d) **Phenotype sample size** (required column name: `N`): Phenotype sample size in the association study
 
