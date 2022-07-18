@@ -9,6 +9,8 @@ This repository contains the `BHR` code. To download into an R session, run:
 
 `devtools::install_github("ajaynadig/bhr")`
 
+We have also published detailed scripts in the `example` folder, including scripts for generating gene-level summary statistics from variant-level summary statistics, scripts for running `BHR`, scripts for generating the figures in the manuscript, and scripts for running the simulations in the manuscript.
+
 ## Elements of a `BHR` analysis
 
 1) *Gene-level summary statistics*
