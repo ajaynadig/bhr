@@ -6,6 +6,7 @@ BHR <- function(mode = NULL,
                 genomewide_correction = FALSE,
                 fixed_genes = NULL,
                 output_jackknife_h2 = FALSE,
+                output_jackknife_rg = FALSE,
                 ss_list_trait1 = NULL,
                 ss_list_trait2 = NULL,
                 trait_list = NULL,
@@ -13,30 +14,70 @@ BHR <- function(mode = NULL,
                 all_models = FALSE,
                 slope_correction = NULL,
                 num_null_conditions = 5,
-                gwc_exclusion = NULL) {
+                gwc_exclusion = NULL,
+                custom_weights = NULL,
+                null_stats = FALSE,
+                intercept = TRUE) {
   library(dplyr)
   library(purrr)
   #compute w_t_beta, burden_score, and overdispersion from betas and variant_variances
+  
+  
+  if (is.null(custom_weights)){
+    if (null_stats) {
+      trait1_sumstats$w_t_beta = sapply(1:nrow(trait1_sumstats), function(x) sum(trait1_sumstats$variant_variances[[x]]*trait1_sumstats$betas[[x]] * sample(c(-1,1),length(trait1_sumstats$betas[[x]]),replace = TRUE)))
+    } else {
+      trait1_sumstats$w_t_beta = sapply(1:nrow(trait1_sumstats), function(x) sum(trait1_sumstats$variant_variances[[x]]*trait1_sumstats$betas[[x]]))
+    }
+    trait1_sumstats$burden_score = sapply(1:nrow(trait1_sumstats), function(x) sum(trait1_sumstats$variant_variances[[x]]))
+    trait1_sumstats$overdispersion = sapply(1:nrow(trait1_sumstats), function(x) sum(trait1_sumstats$variant_variances[[x]]^2)/sum(trait1_sumstats$variant_variances[[x]]))
+    
+    trait1_sumstats = trait1_sumstats[trait1_sumstats$burden_score > 0 & is.finite(trait1_sumstats$burden_score) & is.finite(trait1_sumstats$w_t_beta) & is.finite(trait1_sumstats$overdispersion),]
+    
+    if (!is.null(trait2_sumstats)){
+      if (null_stats) {
+        trait2_sumstats$w_t_beta = sapply(1:nrow(trait2_sumstats), function(x) sum(trait2_sumstats$variant_variances[[x]]*trait2_sumstats$betas[[x]] * sample(c(-1,1),length(trait2_sumstats$betas[[x]]),replace = TRUE)))
+      } else {
+        trait2_sumstats$w_t_beta = sapply(1:nrow(trait2_sumstats), function(x) sum(trait2_sumstats$variant_variances[[x]]*trait2_sumstats$betas[[x]]))
+      }
+      trait2_sumstats$burden_score = sapply(1:nrow(trait2_sumstats), function(x) sum(trait2_sumstats$variant_variances[[x]]))
+      trait2_sumstats$overdispersion = sapply(1:nrow(trait2_sumstats), function(x) sum(trait2_sumstats$variant_variances[[x]]^2)/sum(trait2_sumstats$variant_variances[[x]]))
+      trait2_sumstats = trait2_sumstats[trait2_sumstats$burden_score > 0 & is.finite(trait2_sumstats$burden_score) & is.finite(trait2_sumstats$w_t_beta) & is.finite(trait2_sumstats$overdispersion),]
+      
+    }
+  } else {
+    trait1_sumstats$Wg_ug = sapply(1:nrow(trait1_sumstats), function(x) sqrt(trait1_sumstats$variant_variances[[x]]) * sqrt(trait1_sumstats$custom_weights[[x]]))
+    
+    if (null_stats) {
+      trait1_sumstats$w_t_beta = sapply(1:nrow(trait1_sumstats), function(x) sum(trait1_sumstats$Wg_ug[[x]]* sqrt(trait1_sumstats$variant_variances[[x]])*trait1_sumstats$betas[[x]]*sample(c(-1,1),length(trait1_sumstats$betas[[x]]), replace = TRUE)))
+    } else {
+      trait1_sumstats$w_t_beta = sapply(1:nrow(trait1_sumstats), function(x) sum(trait1_sumstats$Wg_ug[[x]]* sqrt(trait1_sumstats$variant_variances[[x]])*trait1_sumstats$betas[[x]]))
+    }
+    trait1_sumstats$burden_score = sapply(1:nrow(trait1_sumstats), function(x) sum(trait1_sumstats$Wg_ug[[x]]^2))
+    trait1_sumstats$overdispersion = sapply(1:nrow(trait1_sumstats), function(x) sum(trait1_sumstats$variant_variances[[x]]^2)/sum(trait1_sumstats$variant_variances[[x]]))
+    
+    trait1_sumstats = trait1_sumstats[trait1_sumstats$burden_score > 0 & is.finite(trait1_sumstats$burden_score) & is.finite(trait1_sumstats$w_t_beta) & is.finite(trait1_sumstats$overdispersion),]
+    
+    if (!is.null(trait2_sumstats)){
+      trait2_sumstats$Wg_ug = sapply(1:nrow(trait2_sumstats), function(x) sqrt(trait2_sumstats$variant_variances[[x]]) * sqrt(trait2_sumstats$custom_weights[[x]]))
+      if (null_stats) {
+        trait2_sumstats$w_t_beta = sapply(1:nrow(trait2_sumstats), function(x) sum(trait2_sumstats$Wg_ug[[x]]* sqrt(trait2_sumstats$variant_variances[[x]])*trait2_sumstats$betas[[x]]*sample(c(-1,1),length(trait2_sumstats$betas[[x]]), replace = TRUE)))
+      } else {
+        trait2_sumstats$w_t_beta = sapply(1:nrow(trait2_sumstats), function(x) sum(trait2_sumstats$Wg_ug[[x]]* sqrt(trait2_sumstats$variant_variances[[x]])*trait2_sumstats$betas[[x]]))
+      }
+      trait2_sumstats$burden_score = sapply(1:nrow(trait2_sumstats), function(x) sum(trait2_sumstats$Wg_ug[[x]]^2))
+      trait2_sumstats$overdispersion = sapply(1:nrow(trait2_sumstats), function(x) sum(trait2_sumstats$variant_variances[[x]]^2)/sum(trait2_sumstats$variant_variances[[x]]))
 
-  trait1_sumstats$w_t_beta = sapply(1:nrow(trait1_sumstats), function(x) sum(trait1_sumstats$variant_variances[[x]]*trait1_sumstats$betas[[x]]))
-  trait1_sumstats$burden_score = sapply(1:nrow(trait1_sumstats), function(x) sum(trait1_sumstats$variant_variances[[x]]))
-  trait1_sumstats$overdispersion = sapply(1:nrow(trait1_sumstats), function(x) sum(trait1_sumstats$variant_variances[[x]]^2)/sum(trait1_sumstats$variant_variances[[x]]))
-
-  trait1_sumstats = trait1_sumstats[trait1_sumstats$burden_score > 0 & is.finite(trait1_sumstats$burden_score) & is.finite(trait1_sumstats$w_t_beta) & is.finite(trait1_sumstats$overdispersion),]
-
-  if (!is.null(trait2_sumstats)){
-    trait2_sumstats$w_t_beta = sapply(1:nrow(trait2_sumstats), function(x) sum(trait2_sumstats$variant_variances[[x]]*trait2_sumstats$betas[[x]]))
-    trait2_sumstats$burden_score = sapply(1:nrow(trait2_sumstats), function(x) sum(trait2_sumstats$variant_variances[[x]]))
-    trait2_sumstats$overdispersion = sapply(1:nrow(trait2_sumstats), function(x) sum(trait2_sumstats$variant_variances[[x]]^2)/sum(trait2_sumstats$variant_variances[[x]]))
-    trait2_sumstats = trait2_sumstats[trait2_sumstats$burden_score > 0 & is.finite(trait2_sumstats$burden_score) & is.finite(trait2_sumstats$w_t_beta) & is.finite(trait2_sumstats$overdispersion),]
+      trait2_sumstats = trait2_sumstats[trait2_sumstats$burden_score > 0 & is.finite(trait2_sumstats$burden_score) & is.finite(trait2_sumstats$w_t_beta) & is.finite(trait2_sumstats$overdispersion),]
 
     }
+  }
   print("fitting model")
   if (mode == "univariate"){
-    output = BHR_h2(trait1_sumstats, annotations, num_blocks, genomewide_correction, fixed_genes,output_jackknife_h2, overdispersion, all_models,num_null_conditions,slope_correction, gwc_exclusion)
+    output = BHR_h2(trait1_sumstats, annotations, num_blocks, genomewide_correction, fixed_genes,output_jackknife_h2, overdispersion, all_models,num_null_conditions,slope_correction, gwc_exclusion, intercept)
     return(output)
   } else if (mode == "bivariate"){
-    output = BHR_rg(trait1_sumstats = trait1_sumstats, trait2_sumstats = trait2_sumstats,annotations =  annotations, num_blocks = num_blocks,genomewide_correction = genomewide_correction,overdispersion = overdispersion,num_null_conditions = 0,output_jackknife_rg = FALSE,fixed_genes = fixed_genes)
+    output = BHR_rg(trait1_sumstats = trait1_sumstats, trait2_sumstats = trait2_sumstats,annotations =  annotations, num_blocks = num_blocks,genomewide_correction = genomewide_correction,overdispersion = overdispersion,num_null_conditions = 0,output_jackknife_rg = output_jackknife_rg,fixed_genes = fixed_genes)
     return(output)
   } else if (mode == "aggregate"){
     output = BHR_meta(ss_list_trait1, trait_list, annotations, num_blocks, genomewide_correction, fixed_genes,  overdispersion, all_models, num_null_conditions, slope_correction, gwc_exclusion)
