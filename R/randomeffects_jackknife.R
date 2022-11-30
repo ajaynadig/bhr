@@ -1,11 +1,23 @@
-randomeffects_jackknife <- function(sumstats, merged_annotations,num_blocks,block,genomewide_correction,output_jackknife_h2, overdispersion, slope_correction, bivariate = FALSE){
+randomeffects_jackknife <- function(sumstats, merged_annotations,num_blocks,block,genomewide_correction,output_jackknife_h2, overdispersion, slope_correction, bivariate = FALSE, intercept = TRUE){
   #Estimate h2 using all genes
   if (overdispersion == TRUE){
-    X = as.matrix(cbind(sumstats$burden_score*sumstats[colnames(merged_annotations[-1])],sumstats$burden_score,sumstats$overdispersion, rep(1,nrow(sumstats))))
-    y = as.vector(sumstats$gamma_sq)
+    if (intercept == TRUE) {
+      X = as.matrix(cbind(sumstats$burden_score*sumstats[colnames(merged_annotations[-1])],sumstats$burden_score,sumstats$overdispersion, rep(1,nrow(sumstats))))
+      y = as.vector(sumstats$gamma_sq)
+    } else {
+      X = as.matrix(cbind(sumstats$burden_score*sumstats[colnames(merged_annotations[-1])],sumstats$burden_score,sumstats$overdispersion))
+      y = as.vector(sumstats$gamma_sq)  - (1/sumstats$N)
+    }
   } else {
-    X = as.matrix(cbind(sumstats$burden_score*sumstats[colnames(merged_annotations[-1])],sumstats$burden_score, rep(1,nrow(sumstats))))
-    y = as.vector(sumstats$gamma_sq)
+    
+    if (intercept == TRUE) {
+      X = as.matrix(cbind(sumstats$burden_score*sumstats[colnames(merged_annotations[-1])],sumstats$burden_score, rep(1,nrow(sumstats))))
+      y = as.vector(sumstats$gamma_sq)
+    } else {
+      X = as.matrix(cbind(sumstats$burden_score*sumstats[colnames(merged_annotations[-1])],sumstats$burden_score))
+      y = as.vector(sumstats$gamma_sq) - (1/sumstats$N)
+    }
+
   }
 
   #Compute per JK block "numerators" and "denominators" for calculation of OLS betas for all_block and leave-one-out
@@ -59,7 +71,11 @@ randomeffects_jackknife <- function(sumstats, merged_annotations,num_blocks,bloc
                              jackknife_betas,
                              sumstats_true,
                              merged_annotations, simplify = FALSE)
-  intercept_se = sqrt(((num_blocks - 1)/num_blocks)*sum((jackknife_betas[nrow(jackknife_betas),] - mean(jackknife_betas[nrow(jackknife_betas),]))^2))
+  if (intercept) {
+    intercept_se = sqrt(((num_blocks - 1)/num_blocks)*sum((jackknife_betas[nrow(jackknife_betas),] - mean(jackknife_betas[nrow(jackknife_betas),]))^2))
+  } else {
+    intercept_se = NA
+  }
   jackknife_annot_h2 <- sapply(1:num_blocks,
                                function(b, jk_geneh2s, sumstats_true, merged_annotations) {
                                  t(as.matrix(cbind(sumstats_true[colnames(merged_annotations[-1])], 1)[block_true != b,])) %*% as.vector(jk_geneh2s[[b]])
@@ -92,11 +108,17 @@ randomeffects_jackknife <- function(sumstats, merged_annotations,num_blocks,bloc
     genomewide_h2 = ((sum(sumstats_true$w_t_beta)^2/sum(sumstats_true$burden_score)) - all_block_beta_results[length(all_block_beta_results)])
 
   }
+  
+  if (intercept) {
+    intercept = all_block_beta_results[length(all_block_beta_results)]
+  } else {
+    intercept = NA
+  }
 
   if (output_jackknife_h2) {
     return(list(heritabilities = h2_output_table,
                 fractions = fraction_output_table,
-                intercept = all_block_beta_results[length(all_block_beta_results)],
+                intercept = intercept,
                 intercept_se = intercept_se,
                 jackknife_betas = jackknife_betas,
                 jackknife_h2 = jackknife_annot_h2,
@@ -105,7 +127,7 @@ randomeffects_jackknife <- function(sumstats, merged_annotations,num_blocks,bloc
   } else {
     return(list(heritabilities = h2_output_table,
                 fractions = fraction_output_table,
-                intercept = all_block_beta_results[length(all_block_beta_results)],
+                intercept = intercept,
                 intercept_se = intercept_se,
                 genomewide_h2 = genomewide_h2,
                 enrichments_final = enrichments))
