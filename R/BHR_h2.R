@@ -1,6 +1,17 @@
 library(tidyverse)
 
-BHR_h2 <- function(sumstats, annotations, num_blocks, genomewide_correction, fixed_genes, output_jackknife_h2, overdispersion, all_models, num_null_conditions,slope_correction, gwc_exclusion) {
+BHR_h2 <- function(sumstats, 
+                   annotations, 
+                   num_blocks, 
+                   genomewide_correction, 
+                   fixed_genes, 
+                   output_jackknife_h2, 
+                   overdispersion, 
+                   all_models, 
+                   num_null_conditions,
+                   slope_correction, 
+                   gwc_exclusion,
+                   intercept) {
   set.seed(363)
   #Step 1: Wrangling, functions, and other code relevant to both univariate and rg cases.
 
@@ -16,7 +27,7 @@ BHR_h2 <- function(sumstats, annotations, num_blocks, genomewide_correction, fix
   } else if (genomewide_correction == TRUE & !is.null(gwc_exclusion)) {
     print(paste0("Running GWC based on all genes, except in annotation ", gwc_exclusion))
 
-    merged_annotations <- annotations %>% reduce(inner_join, by = "gene")
+    merged_annotations <- annotations %>% purrr::reduce(inner_join, by = "gene")
     exclusion_genes = merged_annotations[merged_annotations[,gwc_exclusion] == 1,"gene"]
     print(paste0(length(exclusion_genes), " genes excluded from annotation"))
     sumstats_edited = sumstats[!(sumstats$gene %in% exclusion_genes),]
@@ -91,7 +102,7 @@ BHR_h2 <- function(sumstats, annotations, num_blocks, genomewide_correction, fix
   }
 
   #wrangle annotations
-  merged_annotations <- annotations %>% reduce(inner_join, by = "gene")
+  merged_annotations <- annotations %>% purrr::reduce(inner_join, by = "gene")
 
   #Step 2: Calculate heritability of trait 1, and if univariate, return results.
   sumstats <- merge(sumstats, merged_annotations, by.x = "gene", by.y = "gene")
@@ -109,7 +120,7 @@ BHR_h2 <- function(sumstats, annotations, num_blocks, genomewide_correction, fix
   sumstats_sub = sumstats[!(sumstats$gene %in% sumstats_sig$gene),]
   block = ceiling((1:nrow(sumstats_sub))/(nrow(sumstats_sub)/num_blocks))
 
-  subthreshold_genes_h2 <- randomeffects_jackknife(sumstats_sub, merged_annotations,num_blocks,block,genomewide_correction,output_jackknife_h2 = TRUE, overdispersion, slope_correction)
+  subthreshold_genes_h2 <- randomeffects_jackknife(sumstats_sub, merged_annotations,num_blocks,block,genomewide_correction,output_jackknife_h2 = TRUE, overdispersion, slope_correction, intercept = intercept)
 
   #now that the regression is complete, we can get rid of the null burden moment conditions
 
@@ -173,7 +184,11 @@ BHR_h2 <- function(sumstats, annotations, num_blocks, genomewide_correction, fix
 
     }
     mixed_fraction_SEs = sqrt(sapply(1:(ncol(merged_annotations)-1), get_mixed_fraction_SEs))
-
+    
+    if (intercept == FALSE) {
+      mixed_fraction_SEs = rep(NA, length(mixed_fraction_SEs))
+    }
+    
     fixed_fraction_output_table <- rbind(mixed_model_fractionh2s,mixed_fraction_SEs)
     rownames(fixed_fraction_output_table) <- c("fraction_h2","fraction_h2_se")
 
@@ -214,8 +229,8 @@ BHR_h2 <- function(sumstats, annotations, num_blocks, genomewide_correction, fix
     frac_sig_se = sqrt(t(gradient) %*% S %*% gradient)
   }
 
-  #If no genome-wide significant genes, then set mixed results to same as subthreshold genes model
-  if (nrow(sumstats_sig) == 0){
+  #If no genome-wide significant genes, or if no intercept is fit, then set mixed results to same as subthreshold genes model
+  if (nrow(sumstats_sig) == 0 | intercept == FALSE){
     mixed_results <- subthreshold_genes_h2
     number_genomesig_genes <- 0
     genomesig_genes <- NA
@@ -224,24 +239,31 @@ BHR_h2 <- function(sumstats, annotations, num_blocks, genomewide_correction, fix
   }
 
   #calculate the attenuation ratio
+  if (intercept) {
+    a = subthreshold_genes_h2$intercept - (1/sumstats_true$N[1])
+    mean_gammasq = mean(sumstats_true$gamma_sq)
+    attenuation_ratio = a/mean_gammasq
+    
+    #standard error with delta method
+    dg_da = 1/mean_gammasq
+    dg_dgammasq = -(a - (1/sumstats_true$n_eff[1]))/(mean_gammasq^2)
+    
+    attenuation_gradient = matrix(data = c(dg_da,dg_dgammasq), nrow = 2, ncol = 1)
+    
+    
+    jackknife_intercept = subthreshold_genes_h2$jackknife_betas[nrow(subthreshold_genes_h2$jackknife_betas),]
+    jackknife_meangammasq= sapply(1:num_blocks, function(x) mean((sumstats_true$gamma_sq)[block_true != x]))
+    jackknife_g_mat = cbind(jackknife_intercept - mean(jackknife_intercept), jackknife_meangammasq - mean(jackknife_meangammasq))
+    S = ((num_blocks-1)/num_blocks)*(t(jackknife_g_mat) %*% jackknife_g_mat)
+    
+    attenuation_ratio_se = sqrt(t(attenuation_gradient) %*% S %*% attenuation_gradient)
+    
+  } else{
+    attenuation_ratio = NA
 
-  a = subthreshold_genes_h2$intercept - (1/sumstats_true$N[1])
-  mean_gammasq = mean(sumstats_true$gamma_sq)
-  attenuation_ratio = a/mean_gammasq
-
-  #standard error with delta method
-  dg_da = 1/mean_gammasq
-  dg_dgammasq = -(a - (1/sumstats_true$n_eff[1]))/(mean_gammasq^2)
-
-  attenuation_gradient = matrix(data = c(dg_da,dg_dgammasq), nrow = 2, ncol = 1)
-
-
-  jackknife_intercept = subthreshold_genes_h2$jackknife_betas[nrow(subthreshold_genes_h2$jackknife_betas),]
-  jackknife_meangammasq= sapply(1:num_blocks, function(x) mean((sumstats_true$gamma_sq)[block_true != x]))
-  jackknife_g_mat = cbind(jackknife_intercept - mean(jackknife_intercept), jackknife_meangammasq - mean(jackknife_meangammasq))
-  S = ((num_blocks-1)/num_blocks)*(t(jackknife_g_mat) %*% jackknife_g_mat)
-
-  attenuation_ratio_se = sqrt(t(attenuation_gradient) %*% S %*% attenuation_gradient)
+    attenuation_ratio_se = NA
+    
+  }
 
   #calculate lambda gc
   chisq = (sumstats_true$N - 1) * (sumstats_true$gamma_sq)
@@ -252,20 +274,30 @@ BHR_h2 <- function(sumstats, annotations, num_blocks, genomewide_correction, fix
     quantile(chisq[block_true != x],0.5)/qchisq(0.5,1)
   })
   lambda_gc_se = sqrt(((num_blocks - 1)/num_blocks)*sum((jackknife_lambdagc - mean(jackknife_lambdagc))^2))
-
+  
+  
+  if (intercept) {
+    intercept = subthreshold_genes_h2$intercept
+    intercept_se = subthreshold_genes_h2$intercept_se
+  } else {
+    intercept = NA
+    intercept_se = NA
+  }
   if (all_models == FALSE){
     output <- list(mixed_model = mixed_results,
                    significant_genes = list(number_significant_genes = number_genomesig_genes,
                                             significant_genes = genomesig_genes,
                                             fraction_burdenh2_significant = frac_sig,
                                             fraction_burdenh2_significant_se = frac_sig_se),
-                   qc = list(intercept = subthreshold_genes_h2$intercept,
-                             intercept_se = subthreshold_genes_h2$intercept_se,
+                   qc = list(intercept = intercept,
+                             intercept_se = intercept_se,
                              attenuation_ratio = attenuation_ratio,
                              attenuation_ratio_se = attenuation_ratio_se,
                              lambda_gc = lambda_gc,
                              lambda_gc_se = lambda_gc_se,
-                             mu_genome = mu_genome))
+                             mu_genome = mu_genome,
+                             mean_gammasq = mean(sumstats_true$gamma_sq),
+                             mean_burdenscore = mean(sumstats_true$burden_score)))
 
   } else {
     output <- list(subthreshold_genes = subthreshold_genes_h2,
@@ -274,13 +306,15 @@ BHR_h2 <- function(sumstats, annotations, num_blocks, genomewide_correction, fix
                                             significant_genes = genomesig_genes,
                                             fraction_burdenh2_significant = frac_sig,
                                             fraction_burdenh2_significant_se = frac_sig_se),
-                   qc = list(intercept = subthreshold_genes_h2$intercept,
-                             intercept_se = subthreshold_genes_h2$intercept_se,
+                   qc = list(intercept = intercept,
+                             intercept_se = intercept_se,
                              attenuation_ratio = attenuation_ratio,
                              attenuation_ratio_se = attenuation_ratio_se,
                              lambda_gc = lambda_gc,
                              lambda_gc_se = lambda_gc_se,
-                             mu_genome = mu_genome))
+                             mu_genome = mu_genome,
+                             mean_gammasq = mean(sumstats_true$gamma_sq),
+                             mean_burdenscore = mean(sumstats_true$burden_score)))
   }
 
   return(output)
