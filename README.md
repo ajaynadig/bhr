@@ -16,7 +16,7 @@ We have also published detailed scripts in the `example` folder, including scrip
 
 1) *Variant-level summary statistics*
 
-Overview: A text file, with a row per variant and column per required variable (note mandatory column names).
+Overview: A text file, with a row per variant and column per required variable (note mandatory column names). For example: if you are analyzing 15,000 genes, each with 10 variants, this file will have 150,000 lines, excluding the header.
 
 *Required columns*
 
@@ -58,6 +58,16 @@ b) **Gene membership annotations** (required column names: no restrictions): 1 o
 
 1) Univariate: estimate heritability and genetic architecture for a single phenotype
 2) Bivariate: estimate cross trait genetic correlation and genetic architecture
+
+**Important note about frequency-function filtering**
+
+Variants profiled through exome sequencing span functional consequence (e.g., predicted loss-of-function, missense, synonymous) and orders of magnitude of allele frequency. When running `BHR`, we recommend partitioning variants into frequency-function bins, where an individual frequency-function bin is defined by a frequency (e.g., AF < 1e-5) and a function (predicted loss-of-function). We recommend this approach for multiple reasons:
+
+1) Improved interpretability
+2) Attenuation bias when analyzing a wide allele frequency range together, due to effect-size - frequency dependent architecture
+3) Attenuation bias from jointly analyzing variants with different effect sizes (e.g., predicted loss-of-function with synonymous).
+
+In the manuscript, we define frequency bins by order of magnutide (e.g., 1e-5 < AF < 1e-4).
 
 **Univariate `BHR` analysis**
 
