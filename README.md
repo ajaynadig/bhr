@@ -30,7 +30,22 @@ d) **Phenotype sample size** (required column name: `N`): Phenotype sample size 
 
 e) **Variant per-allele effect sizes** (required column name: `beta`): The per-allele effect size of the variant
 
-e) **Allele frequency** (required column name: `AF`): The frequency of the allele. Note: users may also provide the variance of the allele instead of the allele frequency, with a column named `variant_variance` and setting custom_variant_variances = TRUE. 
+f) **Allele frequency** (required column name: `AF`): The frequency of the allele. Note: users may also provide the variance of the allele instead of the allele frequency, with a column named `variant_variance` and setting custom_variant_variances = TRUE. 
+
+g) **Phenotype name** (required column name: `phenotype_key`): Phenotype name, any string
+
+*Example:*
+
+```
+             gene chromosome gene_position      N      beta         AF phenotype_key
+  ENSG00000000419         20      49563248 375630  0.014129 5.1037e-06          50NA
+  ENSG00000000419         20      49563248 375630  0.445650 1.2695e-06          50NA
+  ENSG00000000419         20      49563248 375630 -0.640410 1.2691e-06          50NA
+  ENSG00000000419         20      49563248 375630  0.250800 2.5382e-06          50NA
+  ENSG00000000419         20      49563248 375630 -0.382830 1.2746e-06          50NA
+  ENSG00000000419         20      49563248 375630  0.288030 2.5496e-06          50NA
+
+```
 
 2) *Baseline-BHR*
 
@@ -40,7 +55,18 @@ Overview: A text file, with a row per gene and a column per gene set annotation,
 
 a) **Gene name** (required column name: `gene`): Same gene name convention as in the *Gene-level summary statistics* file
 
-b) **Gene membership annotations** (required column names: no restrictions): 1 or 0 to denote presence/absence of gene in gene set
+b) **Gene membership annotations** (required column names: no restrictions): 1 or 0 to denote presence/absence of gene in gene set. Note: if intercept = TRUE, the union of baseline annotations must not span all genes to avoid colinearity. As seen in example below, we avoid colinearity by omitting a single baseline annotation from the regression.
+
+*Example:*
+```
+             gene baseline_oe1 baseline_oe2 baseline_oe3 baseline_oe4
+  ENSG00000000419            0            0            1            0
+  ENSG00000000457            0            1            0            0
+  ENSG00000000460            0            0            1            0
+  ENSG00000000938            0            1            0            0
+  ENSG00000000971            0            1            0            0
+  ENSG00000001036            0            0            1            0
+```
 
 3) *Gene set annotations*
 
@@ -51,6 +77,18 @@ Overview: `BHR` can accept an arbitrary number of gene sets, in addition to the 
 a) **Gene name** (required column name: `gene`): Same gene name convention as in the *Gene-level summary statistics* file
 
 b) **Gene membership annotations** (required column names: no restrictions): 1 or 0 to denote presence/absence of gene in gene set
+
+*Example:*
+
+```
+             gene gene_set_1
+  ENSG00000187634          0
+  ENSG00000188976          0
+  ENSG00000187961          0
+  ENSG00000187583          1
+  ENSG00000187642          0
+  ENSG00000188290          0
+```
 
 ## Overview of `BHR` usage
 
