@@ -14,23 +14,23 @@ We have also published detailed scripts in the `example` folder, including scrip
 
 ## Elements of a `BHR` analysis
 
-1) *Gene-level summary statistics*
+1) *Variant-level summary statistics*
 
-Overview: A text file, with a row per gene and column per required variable (note mandatory column names). The gene-level summary statistics are frequently generated from aggregating across variant-level summary statistics.
+Overview: A text file, with a row per variant and column per required variable (note mandatory column names).
 
 *Required columns*
 
 a) **Gene name** (required column name: `gene`): Any gene naming convention is valid (i.e. ENSEMBL ID), as long as the convention is consistent with that used in Baseline-BHR (see below)
 
-b) **Chromosome** (required column name: `chromosome`): The chromosome of the gene. Note that these values are only used to order genes to divide them into jackknife blocks, so minor variations due to genome build, TSS vs midpoint, etc., should not change results substantially.
+b) **Chromosome** (required column name: `chromosome`): The chromosome of the gene. 
 
-c) **Gene position in base pairs** (required column name: `gene_position`): The position of the gene in base pairs. Note that these values are only used to order genes to divide them into jackknife blocks, so minor variations due to genome build, TSS vs midpoint, etc., should not change results substantially.
+c) **Gene position in base pairs** (required column name: `gene_position`): The position of the gene in base pairs. Note that these values are only used to order genes to divide them into jackknife blocks, so minor variations due to genome build, TSS vs midpoint, etc., should not meaningfully change results.
 
 d) **Phenotype sample size** (required column name: `N`): Phenotype sample size in the association study
 
-e) **Variance variances** (required column name: `variant_variances`): This is a list of variant variances for variants in the gene. The variance variance = 2*p*(1-p), where p it the frequency of the minor allele in the association study. Since this is a list of the variant variances for each variant in the gene, the length of the list should be equal to the number of variants in the gene; note that summary statistics are often stratified by variant frequency and function (i.e., ultra-rare loss-of-function variants), and it is the number of variants in that frequency-function class which are included in the summary statistics.
+e) **Variant per-allele effect sizes** (required column name: `beta`): The per-allele effect size of the variant
 
-f) **Variant per-allele effect sizes** (required column name: `betas`): This is a list of per-allele effect sizes for variants in the gene. The length of the list for each gene is the same as the length of the list of `variant_variances` (see above)
+e) **Allele frequency** (required column name: `AF`): The frequency of the allele. Note: users may also provide the variance of the allele instead of the allele frequency, with a column named `variant_variance` and setting custom_variant_variances = TRUE. 
 
 2) *Baseline-BHR*
 
