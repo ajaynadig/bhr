@@ -17,12 +17,48 @@ BHR <- function(mode = NULL,
                 gwc_exclusion = NULL,
                 custom_weights = NULL,
                 null_stats = FALSE,
-                intercept = TRUE) {
-  library(dplyr)
-  library(purrr)
+                intercept = TRUE,
+                custom_variant_variances = FALSE) {
+
+  #Calculate variance variances from AF, if not provided
+  if (custom_variant_variances == FALSE){
+    if (is.null(trait2_sumstats)){
+      trait1_sumstats$variant_variance = 2*trait1_sumstats$AF*(1-trait1_sumstats$AF)
+    } else {
+      trait1_sumstats$variant_variance = 2*trait1_sumstats$AF*(1-trait1_sumstats$AF)
+      trait2_sumstats$variant_variance = 2*trait2_sumstats$AF*(1-trait2_sumstats$AF)
+    }
+  } 
+  
+    #Aggregate variant-row summary statistics into gene-row summary statistics
+    if (is.null(trait2_sumstats)){
+      trait1_sumstats = trait1_sumstats %>% group_by(gene) %>% summarise(betas = list(beta),
+                                                                         variant_variances = list(variant_variance),
+                                                                         chromosome = first(chromosome),
+                                                                         gene_position = first(gene_position),
+                                                                         N = first(N),
+                                                                         phenotype_key = first(phenotype_key))
+    } else{
+      trait1_sumstats = trait1_sumstats %>% group_by(gene) %>% summarise(betas = list(beta),
+                                                                         variant_variances = list(variant_variance),
+                                                                         chromosome = first(chromosome),
+                                                                         gene_position = first(gene_position),
+                                                                         N = first(N),
+                                                                         phenotype_key = first(phenotype_key))
+      
+      trait2_sumstats = trait2_sumstats %>% group_by(gene) %>% summarise(betas = list(beta),
+                                                                         variant_variances = list(variant_variance),
+                                                                         chromosome = first(chromosome),
+                                                                         gene_position = first(gene_position),
+                                                                         N = first(N),
+                                                                         phenotype_key = first(phenotype_key))
+    }
+    
+  
+  
+  
+  
   #compute w_t_beta, burden_score, and overdispersion from betas and variant_variances
-  
-  
   if (is.null(custom_weights)){
     if (null_stats) {
       trait1_sumstats$w_t_beta = sapply(1:nrow(trait1_sumstats), function(x) sum(trait1_sumstats$variant_variances[[x]]*trait1_sumstats$betas[[x]] * sample(c(-1,1),length(trait1_sumstats$betas[[x]]),replace = TRUE)))
@@ -45,7 +81,10 @@ BHR <- function(mode = NULL,
       trait2_sumstats = trait2_sumstats[trait2_sumstats$burden_score > 0 & is.finite(trait2_sumstats$burden_score) & is.finite(trait2_sumstats$w_t_beta) & is.finite(trait2_sumstats$overdispersion),]
       
     }
-  } else {
+  } 
+  
+  
+  else {
     trait1_sumstats$Wg_ug = sapply(1:nrow(trait1_sumstats), function(x) sqrt(trait1_sumstats$variant_variances[[x]]) * sqrt(trait1_sumstats$custom_weights[[x]]))
     
     if (null_stats) {
@@ -72,7 +111,12 @@ BHR <- function(mode = NULL,
 
     }
   }
+  
+  
   print("fitting model")
+  
+  
+  
   if (mode == "univariate"){
     output = BHR_h2(trait1_sumstats, annotations, num_blocks, genomewide_correction, fixed_genes,output_jackknife_h2, overdispersion, all_models,num_null_conditions,slope_correction, gwc_exclusion, intercept)
     return(output)
