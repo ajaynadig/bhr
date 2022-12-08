@@ -20,6 +20,9 @@ BHR <- function(mode = NULL,
                 intercept = TRUE,
                 custom_variant_variances = FALSE) {
 
+  print(paste0("Running BHR at ",Sys.time()))
+
+  
   #Calculate variance variances from AF, if not provided
   if (custom_variant_variances == FALSE){
     if (is.null(trait2_sumstats)){
@@ -112,24 +115,30 @@ BHR <- function(mode = NULL,
     }
   }
   
-  
-  print("fitting model")
-  
-  
+
   
   if (mode == "univariate"){
     output = BHR_h2(trait1_sumstats, annotations, num_blocks, genomewide_correction, fixed_genes,output_jackknife_h2, overdispersion, all_models,num_null_conditions,slope_correction, gwc_exclusion, intercept)
+    print(paste0("BHR finished at ",Sys.time()))
     return(output)
   } else if (mode == "bivariate"){
     output = BHR_rg(trait1_sumstats = trait1_sumstats, trait2_sumstats = trait2_sumstats,annotations =  annotations, num_blocks = num_blocks,genomewide_correction = genomewide_correction,overdispersion = overdispersion,num_null_conditions = 0,output_jackknife_rg = output_jackknife_rg,fixed_genes = fixed_genes)
+    print(paste0("BHR finished at ",Sys.time()))
     return(output)
   } else if (mode == "aggregate"){
     output = BHR_meta(ss_list_trait1, trait_list, annotations, num_blocks, genomewide_correction, fixed_genes,  overdispersion, all_models, num_null_conditions, slope_correction, gwc_exclusion)
+    print(paste0("BHR finished at ",Sys.time()))
     return(output)
     } else if (mode == "aggregate-rg"){
       output = BHR_meta_rg(ss_list_trait1,ss_list_trait2, annotations, num_blocks)
+      print(paste0("BHR finished at ",Sys.time()))
       return(output)
     } else {
       return("Please enter a valid mode among: ['univariate','bivariate','aggregate', 'aggregate-rg']")
+      print(paste0("BHR finished at ",Sys.time()))
   }
-}
+
+  }
+
+
+

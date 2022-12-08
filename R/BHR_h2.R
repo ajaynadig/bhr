@@ -107,7 +107,7 @@ BHR_h2 <- function(sumstats,
   #Step 2: Calculate heritability of trait 1, and if univariate, return results.
   sumstats <- merge(sumstats, merged_annotations, by.x = "gene", by.y = "gene")
   sumstats = sumstats[with(sumstats, order(chromosome, gene_position)),]
-
+  n_total_genes <- nrow(sumstats[sumstats$true == TRUE,])
   if (!is.null(fixed_genes)) {
     sig_chisq = sumstats$gene[sumstats$true] %in% fixed_genes
   } else {
@@ -115,7 +115,10 @@ BHR_h2 <- function(sumstats,
   }
 
   sumstats_sig = sumstats[sumstats$true,][sig_chisq,]
-
+  n_significant_genes = nrow(sumstats_sig)
+  n_non_significant_genes = n_total_genes - n_significant_genes
+  print(paste0(n_total_genes," genes in the BHR regression, ",n_significant_genes," of which are significant fixed effects"))
+  
   #Estimate h2 and h2_SE using only genes below GW threshold
   sumstats_sub = sumstats[!(sumstats$gene %in% sumstats_sig$gene),]
   block = ceiling((1:nrow(sumstats_sub))/(nrow(sumstats_sub)/num_blocks))
@@ -274,7 +277,6 @@ BHR_h2 <- function(sumstats,
     quantile(chisq[block_true != x],0.5)/qchisq(0.5,1)
   })
   lambda_gc_se = sqrt(((num_blocks - 1)/num_blocks)*sum((jackknife_lambdagc - mean(jackknife_lambdagc))^2))
-  
   
   if (intercept) {
     intercept = subthreshold_genes_h2$intercept
