@@ -14,23 +14,38 @@ We have also published detailed scripts in the `example` folder, including scrip
 
 ## Elements of a `BHR` analysis
 
-1) *Gene-level summary statistics*
+1) *Variant-level summary statistics*
 
-Overview: A text file, with a row per gene and column per required variable (note mandatory column names). The gene-level summary statistics are frequently generated from aggregating across variant-level summary statistics.
+Overview: A text file, with a row per variant and column per required variable (note mandatory column names). For example: if you are analyzing 15,000 genes, each with 10 variants, this file will have 150,000 lines, excluding the header.
 
 *Required columns*
 
 a) **Gene name** (required column name: `gene`): Any gene naming convention is valid (i.e. ENSEMBL ID), as long as the convention is consistent with that used in Baseline-BHR (see below)
 
-b) **Chromosome** (required column name: `chromosome`): The chromosome of the gene. Note that these values are only used to order genes to divide them into jackknife blocks, so minor variations due to genome build, TSS vs midpoint, etc., should not change results substantially.
+b) **Chromosome** (required column name: `chromosome`): The chromosome of the gene. 
 
-c) **Gene position in base pairs** (required column name: `gene_position`): The position of the gene in base pairs. Note that these values are only used to order genes to divide them into jackknife blocks, so minor variations due to genome build, TSS vs midpoint, etc., should not change results substantially.
+c) **Gene position in base pairs** (required column name: `gene_position`): The position of the gene in base pairs. Note that these values are only used to order genes to divide them into jackknife blocks, so minor variations due to genome build, TSS vs midpoint, etc., should not meaningfully change results.
 
 d) **Phenotype sample size** (required column name: `N`): Phenotype sample size in the association study
 
-e) **Variance variances** (required column name: `variant_variances`): This is a list of variant variances for variants in the gene. The variance variance = 2*p*(1-p), where p it the frequency of the minor allele in the association study. Since this is a list of the variant variances for each variant in the gene, the length of the list should be equal to the number of variants in the gene; note that summary statistics are often stratified by variant frequency and function (i.e., ultra-rare loss-of-function variants), and it is the number of variants in that frequency-function class which are included in the summary statistics.
+e) **Variant per-allele effect sizes** (required column name: `beta`): The per-allele effect size of the variant
 
-f) **Variant per-allele effect sizes** (required column name: `betas`): This is a list of per-allele effect sizes for variants in the gene. The length of the list for each gene is the same as the length of the list of `variant_variances` (see above)
+f) **Allele frequency** (required column name: `AF`): The frequency of the allele. Note: users may also provide the variance of the allele instead of the allele frequency, with a column named `variant_variance` and setting custom_variant_variances = TRUE. 
+
+g) **Phenotype name** (required column name: `phenotype_key`): Phenotype name, any string
+
+*Example:*
+
+```
+             gene chromosome gene_position      N      beta         AF phenotype_key
+  ENSG00000000419         20      49563248 375630  0.014129 5.1037e-06          50NA
+  ENSG00000000419         20      49563248 375630  0.445650 1.2695e-06          50NA
+  ENSG00000000419         20      49563248 375630 -0.640410 1.2691e-06          50NA
+  ENSG00000000419         20      49563248 375630  0.250800 2.5382e-06          50NA
+  ENSG00000000419         20      49563248 375630 -0.382830 1.2746e-06          50NA
+  ENSG00000000419         20      49563248 375630  0.288030 2.5496e-06          50NA
+
+```
 
 2) *Baseline-BHR*
 
@@ -40,7 +55,18 @@ Overview: A text file, with a row per gene and a column per gene set annotation,
 
 a) **Gene name** (required column name: `gene`): Same gene name convention as in the *Gene-level summary statistics* file
 
-b) **Gene membership annotations** (required column names: no restrictions): 1 or 0 to denote presence/absence of gene in gene set
+b) **Gene membership annotations** (required column names: no restrictions): 1 or 0 to denote presence/absence of gene in gene set. Note: if intercept = TRUE, the union of baseline annotations must not span all genes to avoid colinearity. As seen in example below, we avoid colinearity by omitting a single baseline annotation from the regression.
+
+*Example:*
+```
+             gene baseline_oe1 baseline_oe2 baseline_oe3 baseline_oe4
+  ENSG00000000419            0            0            1            0
+  ENSG00000000457            0            1            0            0
+  ENSG00000000460            0            0            1            0
+  ENSG00000000938            0            1            0            0
+  ENSG00000000971            0            1            0            0
+  ENSG00000001036            0            0            1            0
+```
 
 3) *Gene set annotations*
 
@@ -52,12 +78,34 @@ a) **Gene name** (required column name: `gene`): Same gene name convention as in
 
 b) **Gene membership annotations** (required column names: no restrictions): 1 or 0 to denote presence/absence of gene in gene set
 
+*Example:*
+
+```
+             gene gene_set_1
+  ENSG00000187634          0
+  ENSG00000188976          0
+  ENSG00000187961          0
+  ENSG00000187583          1
+  ENSG00000187642          0
+  ENSG00000188290          0
+```
+
 ## Overview of `BHR` usage
 
 `BHR` can be used in different modes, depending on desired outputs. The three primary modes are:
 
 1) Univariate: estimate heritability and genetic architecture for a single phenotype
 2) Bivariate: estimate cross trait genetic correlation and genetic architecture
+
+**Important note about frequency-function filtering**
+
+Variants profiled through exome sequencing span functional consequence (e.g., predicted loss-of-function, missense, synonymous) and orders of magnitude of allele frequency. When running `BHR`, we recommend partitioning variants into frequency-function bins, where an individual frequency-function bin is defined by a frequency (e.g., AF < 1e-5) and a function (predicted loss-of-function). We recommend this approach for multiple reasons:
+
+1) Improved interpretability
+2) Attenuation bias when analyzing a wide allele frequency range together, due to effect-size - frequency dependent architecture
+3) Attenuation bias from jointly analyzing variants with different effect sizes (e.g., predicted loss-of-function with synonymous).
+
+In the manuscript, we define frequency bins by order of magnutide (e.g., 1e-5 < AF < 1e-4).
 
 **Univariate `BHR` analysis**
 
