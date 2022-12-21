@@ -349,13 +349,18 @@ pre code {
 </div>
 
 
+<div id="description" class="section level2">
+<h2>Description</h2>
+<p>This file contains the code to run a BHR analysis of bipolar disorder, from publicly available summary statistics to final estimates.</p>
+<p>Because this trait is binary, and we have only summary statistics, we compute per-allele effect sizes from case and control allele counts (Equation 33 in BHR paper). In the case of a continuous trait, one should compute per-allele effect sizes using a linear model.</p>
+</div>
 <div id="loading-and-filtering-variants." class="section level2">
 <h2>Loading and filtering variants.</h2>
 <p>The source file, “Bipex_variants_results.tsv”, can be downloaded at this URL: <a href="https://bipex.broadinstitute.org/downloads" class="uri">https://bipex.broadinstitute.org/downloads</a></p>
 <p>The baseline model file, “baseline_model.txt”, can be downloaded at this URL: <a href="https://github.com/ajaynadig/bhr/tree/master/reference_files" class="uri">https://github.com/ajaynadig/bhr/tree/master/reference_files</a></p>
 <pre class="r"><code>baseline_model &lt;- read.table(&quot;~/Documents/oconnor_rotation/rarevariantproject/final_manuscript_repo/bhr/reference_files/ms_baseline_oe5.txt&quot;)
 
-bp_variantlevel_bipex &lt;- bigreadr::fread2(&quot;~/Downloads/BipEx_variant_results.tsv&quot;)
+bp_variantlevel_bipex &lt;- bigreadr::fread2(&quot;~/Downloads/BipEx_variant_results.tsv.gz&quot;)
 
 variant_filter = bp_variantlevel_bipex$group == &quot;Bipolar Disorder&quot; &amp; #Filter to Bipolar Disorder counts
   bp_variantlevel_bipex$in_analysis == TRUE &amp; #Use variant filter from Palmer et al, 2022
@@ -399,32 +404,20 @@ bp_variantlevel_bipex &lt;- bp_variantlevel_bipex[variant_filter,
   table$beta_perallele = table$beta/sqrt(table$twopq)
   
   #aggregate into gene-level table.
-  sumstats = data.frame(gene = unique(table$gene_id))
-  
-  #each element of variant_variances is a list of variances for all variants in a gene.
-  sumstats$variant_variances = lapply(sumstats$gene,
-                                      function(x) table$twopq[table$gene_id == x]) 
-  
-  #each element of variant_variances is a list of per-allele betas for all variants in a gene.
-  sumstats$betas = lapply(sumstats$gene,
-                          function(x) table$beta_perallele[table$gene_id == x]) 
-  
-  
-  names(sumstats) &lt;- c(&quot;gene&quot;, &quot;variant_variances&quot;,&quot;betas&quot;)
-  
-  #add chromosome and position information
   #position doesn't need to be super precise, as it is only used to order genes for jackknife
-  sumstats$gene_position &lt;- parse_number(sapply(strsplit(table$locus[match(sumstats$gene,table$gene_id)], split = &quot;:&quot;), function(x) x[[2]]))
-  sumstats$chromosome = parse_number(sapply(strsplit(table$locus[match(sumstats$gene,table$gene_id)], split = &quot;:&quot;), function(x) x[[1]]))
-  
   #N = sum of case and control counts
-  sumstats$N = n_cases + n_controls
+  sumstats = data.frame(gene = table$gene_id,
+                        AF = table$AF,
+                        beta = table$beta_perallele,
+                        gene_position = parse_number(sapply(strsplit(table$locus, split = &quot;:&quot;), function(x) x[[2]])),
+                        chromosome =  parse_number(sapply(strsplit(table$locus, split = &quot;:&quot;), function(x) x[[1]])),
+                        N = n_cases + n_controls,
+                        phenotype_key = &quot;BP&quot;)
   
   #we have found that in these smaller sample analyses, there are some genes with
   #large burden scores that are clearly outliers
-  #we remove genes with burden scores more than 8 sd from the mean as a conservative filter.
-  burdenscores = sapply(sumstats$variant_variances, function(x) sum(x))
-  sumstats &lt;- sumstats[abs(scale(burdenscores)) &lt; 8,]
+  #we remove one such gene, TTN
+  sumstats &lt;- sumstats[sumstats$gene != &quot;ENSG00000155657&quot;,]
   
   
   return(sumstats)
@@ -451,25 +444,48 @@ bp_sumstats_synonymous = wrangle_sumstats(bp_variantlevel_bipex,
 <pre class="r"><code>#install BHR
 #devtools::install_github(&quot;ajaynadig/bhr&quot;, force = TRUE)
 
-bp_ptv_bhr &lt;- bhr::BHR(bp_sumstats_ptv, 
+bp_ptv_bhr &lt;- BHR(trait1_sumstats = bp_sumstats_ptv, 
                        annotations = list(baseline_model), #baseline model including constraint annotations
                        num_blocks = 100, #number of blocks for jackknife
-                       num_null_conditions = 5, #5*num_genes null moment conditions
-                       mode = &quot;univariate&quot;) #run in univariate mode to compute burdne h2</code></pre>
-<pre><code>## [1] &quot;fitting model&quot;</code></pre>
-<pre class="r"><code>bp_missenseMPC2_bhr &lt;- bhr::BHR(bp_sumstats_missenseMPC2, 
+                       mode = &quot;univariate&quot;) #run in univariate mode to compute burden h2</code></pre>
+<pre><code>## Burden Heritability Regression
+## Daniel Weiner, Ajay Nadig, and Luke O'Connor, 2022</code></pre>
+<pre><code>## Running BHR at 2022-12-21 15:14:45</code></pre>
+<pre><code>## For trait 1, MAF ranges from 1.7e-05 to 8.7e-05</code></pre>
+<pre><code>## ...seems reasonable</code></pre>
+<pre><code>## Lambda GC:  1.53128835625155</code></pre>
+<pre><code>## Lambda GC seems very high. Please check input columns against documentation</code></pre>
+<pre><code>## 15716 genes in the BHR regression, 0 of which are significant fixed effects</code></pre>
+<pre><code>## ...seems reasonable</code></pre>
+<pre><code>## BHR finished at 2022-12-21 15:14:54</code></pre>
+<pre class="r"><code>bp_missenseMPC2_bhr &lt;- BHR(bp_sumstats_missenseMPC2, 
                        annotations = list(baseline_model),
                        num_blocks = 100,
-                       num_null_conditions = 5,
                        mode = &quot;univariate&quot;)</code></pre>
-<pre><code>## [1] &quot;fitting model&quot;</code></pre>
-<pre class="r"><code>bp_synonymous_bhr &lt;- bhr::BHR(bp_sumstats_synonymous, 
+<pre><code>## Burden Heritability Regression
+## Daniel Weiner, Ajay Nadig, and Luke O'Connor, 2022</code></pre>
+<pre><code>## Running BHR at 2022-12-21 15:14:54</code></pre>
+<pre><code>## For trait 1, MAF ranges from 1.7e-05 to 8.7e-05</code></pre>
+<pre><code>## ...seems reasonable</code></pre>
+<pre><code>## Lambda GC:  1.41842196148214</code></pre>
+<pre><code>## ...seems reasonable</code></pre>
+<pre><code>## 3805 genes in the BHR regression, 0 of which are significant fixed effects</code></pre>
+<pre><code>## ...seems reasonable</code></pre>
+<pre><code>## BHR finished at 2022-12-21 15:14:56</code></pre>
+<pre class="r"><code>bp_synonymous_bhr &lt;- BHR(bp_sumstats_synonymous, 
                        annotations = list(baseline_model),
                        num_blocks = 100,
-                       genomewide_correction = FALSE, 
-                       num_null_conditions = 5,
                        mode = &quot;univariate&quot;)</code></pre>
-<pre><code>## [1] &quot;fitting model&quot;</code></pre>
+<pre><code>## Burden Heritability Regression
+## Daniel Weiner, Ajay Nadig, and Luke O'Connor, 2022</code></pre>
+<pre><code>## Running BHR at 2022-12-21 15:14:56</code></pre>
+<pre><code>## For trait 1, MAF ranges from 1.7e-05 to 8.7e-05</code></pre>
+<pre><code>## ...seems reasonable</code></pre>
+<pre><code>## Lambda GC:  1.08202772430319</code></pre>
+<pre><code>## ...seems reasonable</code></pre>
+<pre><code>## 17025 genes in the BHR regression, 0 of which are significant fixed effects</code></pre>
+<pre><code>## ...seems reasonable</code></pre>
+<pre><code>## BHR finished at 2022-12-21 15:15:07</code></pre>
 <pre class="r"><code>#convert observed scale to liability scale h2
 
 #calculate sample prevalence
@@ -494,21 +510,21 @@ print(paste0(&quot;BP PTV Burden Heritability: &quot;,
              &quot;(&quot;,
              round(bp_ptv_bhr$mixed_model$heritabilities[2,5] * bp_scalingfactor, 4),
              &quot;)&quot;))</code></pre>
-<pre><code>## [1] &quot;BP PTV Burden Heritability: 0.0184 (0.0035)&quot;</code></pre>
+<pre><code>## [1] &quot;BP PTV Burden Heritability: 0.0179 (0.003)&quot;</code></pre>
 <pre class="r"><code>print(paste0(&quot;BP Missense MPC &gt; 2 Burden Heritability: &quot;,
              round(bp_missenseMPC2_bhr$mixed_model$heritabilities[1,5] * bp_scalingfactor, 4),
              &quot; &quot;,
              &quot;(&quot;,
              round(bp_missenseMPC2_bhr$mixed_model$heritabilities[2,5] * bp_scalingfactor, 4),
              &quot;)&quot;))</code></pre>
-<pre><code>## [1] &quot;BP Missense MPC &gt; 2 Burden Heritability: 0.0014 (0.0012)&quot;</code></pre>
+<pre><code>## [1] &quot;BP Missense MPC &gt; 2 Burden Heritability: 0.0021 (0.0011)&quot;</code></pre>
 <pre class="r"><code>print(paste0(&quot;BP Synonymous Burden Heritability: &quot;,
              round(bp_synonymous_bhr$mixed_model$heritabilities[1,5] * bp_scalingfactor, 4),
              &quot; &quot;,
              &quot;(&quot;,
              round(bp_synonymous_bhr$mixed_model$heritabilities[2,5] * bp_scalingfactor, 4),
              &quot;)&quot;))</code></pre>
-<pre><code>## [1] &quot;BP Synonymous Burden Heritability: 0.0033 (0.0025)&quot;</code></pre>
+<pre><code>## [1] &quot;BP Synonymous Burden Heritability: 0.0015 (0.0021)&quot;</code></pre>
 </div>
 
 

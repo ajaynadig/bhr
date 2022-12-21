@@ -1,12 +1,19 @@
 ---
-title: "BHR Example: Burden Heritability in the BipEx dataset"
-output: html_document
+title: 'BHR Example: Burden Heritability in the BipEx dataset'
+output:
+  html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 ```
+## Description 
+
+This file contains the code to run a BHR analysis of bipolar disorder, from publicly available summary statistics to final estimates.
+
+Because this trait is binary, and we have only summary statistics, we compute per-allele effect sizes from case and control allele counts (Equation 33 in BHR paper). In the case of a continuous trait, one should compute per-allele effect sizes using a linear model.
 
 ## Loading and filtering variants.
 
@@ -19,7 +26,7 @@ https://github.com/ajaynadig/bhr/tree/master/reference_files
 ```{r load}
 baseline_model <- read.table("~/Documents/oconnor_rotation/rarevariantproject/final_manuscript_repo/bhr/reference_files/ms_baseline_oe5.txt")
 
-bp_variantlevel_bipex <- bigreadr::fread2("~/Downloads/BipEx_variant_results.tsv")
+bp_variantlevel_bipex <- bigreadr::fread2("~/Downloads/BipEx_variant_results.tsv.gz")
 
 variant_filter = bp_variantlevel_bipex$group == "Bipolar Disorder" & #Filter to Bipolar Disorder counts
   bp_variantlevel_bipex$in_analysis == TRUE & #Use variant filter from Palmer et al, 2022
@@ -66,32 +73,20 @@ wrangle_sumstats <- function(table,n_cases,n_controls, var_filter) {
   table$beta_perallele = table$beta/sqrt(table$twopq)
   
   #aggregate into gene-level table.
-  sumstats = data.frame(gene = unique(table$gene_id))
-  
-  #each element of variant_variances is a list of variances for all variants in a gene.
-  sumstats$variant_variances = lapply(sumstats$gene,
-                                      function(x) table$twopq[table$gene_id == x]) 
-  
-  #each element of variant_variances is a list of per-allele betas for all variants in a gene.
-  sumstats$betas = lapply(sumstats$gene,
-                          function(x) table$beta_perallele[table$gene_id == x]) 
-  
-  
-  names(sumstats) <- c("gene", "variant_variances","betas")
-  
-  #add chromosome and position information
   #position doesn't need to be super precise, as it is only used to order genes for jackknife
-  sumstats$gene_position <- parse_number(sapply(strsplit(table$locus[match(sumstats$gene,table$gene_id)], split = ":"), function(x) x[[2]]))
-  sumstats$chromosome = parse_number(sapply(strsplit(table$locus[match(sumstats$gene,table$gene_id)], split = ":"), function(x) x[[1]]))
-  
   #N = sum of case and control counts
-  sumstats$N = n_cases + n_controls
+  sumstats = data.frame(gene = table$gene_id,
+                        AF = table$AF,
+                        beta = table$beta_perallele,
+                        gene_position = parse_number(sapply(strsplit(table$locus, split = ":"), function(x) x[[2]])),
+                        chromosome =  parse_number(sapply(strsplit(table$locus, split = ":"), function(x) x[[1]])),
+                        N = n_cases + n_controls,
+                        phenotype_key = "BP")
   
   #we have found that in these smaller sample analyses, there are some genes with
   #large burden scores that are clearly outliers
-  #we remove genes with burden scores more than 8 sd from the mean as a conservative filter.
-  burdenscores = sapply(sumstats$variant_variances, function(x) sum(x))
-  sumstats <- sumstats[abs(scale(burdenscores)) < 8,]
+  #we remove one such gene, TTN
+  sumstats <- sumstats[sumstats$gene != "ENSG00000155657",]
   
   
   return(sumstats)
@@ -122,23 +117,20 @@ bp_sumstats_synonymous = wrangle_sumstats(bp_variantlevel_bipex,
 #install BHR
 #devtools::install_github("ajaynadig/bhr", force = TRUE)
 
-bp_ptv_bhr <- bhr::BHR(bp_sumstats_ptv, 
+bp_ptv_bhr <- BHR(trait1_sumstats = bp_sumstats_ptv, 
                        annotations = list(baseline_model), #baseline model including constraint annotations
                        num_blocks = 100, #number of blocks for jackknife
-                       num_null_conditions = 5, #5*num_genes null moment conditions
-                       mode = "univariate") #run in univariate mode to compute burdne h2
+                       mode = "univariate") #run in univariate mode to compute burden h2
 
-bp_missenseMPC2_bhr <- bhr::BHR(bp_sumstats_missenseMPC2, 
+
+bp_missenseMPC2_bhr <- BHR(bp_sumstats_missenseMPC2, 
                        annotations = list(baseline_model),
                        num_blocks = 100,
-                       num_null_conditions = 5,
                        mode = "univariate")
 
-bp_synonymous_bhr <- bhr::BHR(bp_sumstats_synonymous, 
+bp_synonymous_bhr <- BHR(bp_sumstats_synonymous, 
                        annotations = list(baseline_model),
                        num_blocks = 100,
-                       genomewide_correction = FALSE, 
-                       num_null_conditions = 5,
                        mode = "univariate")
 
 #convert observed scale to liability scale h2

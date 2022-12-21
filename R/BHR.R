@@ -209,15 +209,8 @@ BHR <- function(mode = NULL,
                       gwc_exclusion)
     message(paste0("BHR finished at ",Sys.time()))
     return(output)
-    } else if (mode == "aggregate-rg"){
-      output = BHR_meta_rg(ss_list_trait1,
-                           ss_list_trait2, 
-                           annotations, 
-                           num_blocks)
-      message(paste0("BHR finished at ",Sys.time()))
-      return(output)
     } else {
-      return("Please enter a valid mode among: ['univariate','bivariate','aggregate', 'aggregate-rg']")
+      return("Please enter a valid mode among: ['univariate','bivariate','aggregate']")
       message(paste0("BHR finished at ",Sys.time()))
   }
 

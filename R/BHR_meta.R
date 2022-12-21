@@ -16,7 +16,6 @@ BHR_meta <- function(ss_list_trait1, trait_list, annotations, num_blocks, genome
   fixed_h2se_bin <- list()
   counter = 1
   for (ss_file_name in ss_list_trait1){ #sum
-    
     total_h2 <- list()
     jk_h2 <- list()
     fixed_h2se <- list()
