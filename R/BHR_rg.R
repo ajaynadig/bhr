@@ -1,5 +1,15 @@
 
-BHR_rg <- function(trait1_sumstats, trait2_sumstats, annotations, num_blocks = 100,genomewide_correction = TRUE,overdispersion, num_null_conditions = 0,output_jackknife_rg = FALSE, fixed_genes = NULL) {
+BHR_rg <- function(trait1_sumstats, 
+                   trait2_sumstats, 
+                   annotations, 
+                   num_blocks = 100,
+                   genomewide_correction = TRUE,
+                   overdispersion, 
+                   num_null_conditions = 0,
+                   output_jackknife_rg = FALSE, 
+                   fixed_genes = NULL,
+                   log,
+                   start_time) {
   trait1_sumstats = trait1_sumstats[!is.na(trait1_sumstats$chromosome),]
   trait2_sumstats = trait2_sumstats[!is.na(trait2_sumstats$chromosome),]
 
@@ -29,7 +39,6 @@ BHR_rg <- function(trait1_sumstats, trait2_sumstats, annotations, num_blocks = 1
 
   heritability_trait1 <- BHR_h2(trait1_sumstats, annotations = annotations, num_blocks = num_blocks, fixed_genes = sig_genes, genomewide_correction = FALSE, output_jackknife_h2 = TRUE, overdispersion = overdispersion, num_null_conditions = 0, slope_correction = FALSE, all_models = TRUE, gwc_exclusion = NULL)
   heritability_trait2 <- BHR_h2(trait2_sumstats, annotations = annotations, num_blocks = num_blocks, fixed_genes = sig_genes, genomewide_correction = FALSE,output_jackknife_h2 = TRUE, overdispersion = overdispersion, num_null_conditions = 0, slope_correction = FALSE, all_models = TRUE, gwc_exclusion = NULL)
-  print("Test")
   #add null moment conditions
   trait1_sumstats = trait1_sumstats[,c("gene","N","gamma_sq","gamma","w_t_beta","burden_score","burden_score_sqrt","overdispersion","chromosome","gene_position")]
   trait1_sumstats$true = TRUE
@@ -173,7 +182,8 @@ BHR_rg <- function(trait1_sumstats, trait2_sumstats, annotations, num_blocks = 1
                           sig_genes = sig_genes,
                           #         fractions_mixed = fixed_results$fractions,
                           fractions_subthreshold = genetic_covariance_random$fractions,
-                          enrichments_subthreshold = genetic_covariance_random$enrichments_final))
+                          enrichments_subthreshold = genetic_covariance_random$enrichments_final),
+                run_time = Sys.time() - start_time)
   } else {
     output = list(trait1 = heritability_trait1,
                   trait2 = heritability_trait2,
@@ -189,7 +199,8 @@ BHR_rg <- function(trait1_sumstats, trait2_sumstats, annotations, num_blocks = 1
                             sig_genes = sig_genes,
                             #         fractions_mixed = fixed_results$fractions,
                             fractions_subthreshold = genetic_covariance_random$fractions,
-                            enrichments_subthreshold = genetic_covariance_random$enrichments_final))
+                            enrichments_subthreshold = genetic_covariance_random$enrichments_final),
+                  run_time = Sys.time() - start_time)
   }
 
 

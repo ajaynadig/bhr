@@ -11,36 +11,53 @@ BHR_h2 <- function(sumstats,
                    num_null_conditions,
                    slope_correction, 
                    gwc_exclusion,
-                   intercept) {
+                   intercept,
+                   log,
+                   start_time) {
   set.seed(363)
   #Step 1: Wrangling, functions, and other code relevant to both univariate and rg cases.
-
+  
   if (genomewide_correction == TRUE & is.null(gwc_exclusion)){
-    print("Running GWC based on all genes")
+    message("Running GWC based on all genes")
 
     mu_genome = sum(sumstats$w_t_beta)/sum(sumstats$burden_score)
     per_gene_correction = mu_genome * sqrt(sumstats$burden_score)
     sumstats$gamma_sq = ((sumstats$w_t_beta / sqrt(sumstats$burden_score)) - per_gene_correction)^2
 
-    print(paste0("Mean genome-wide per allele effect size: ", signif(mu_genome, 2)))
+    message(paste0("Mean genome-wide per allele effect size: ", signif(mu_genome, 2)))
 
   } else if (genomewide_correction == TRUE & !is.null(gwc_exclusion)) {
-    print(paste0("Running GWC based on all genes, except in annotation ", gwc_exclusion))
+    message(paste0("Running GWC based on all genes, except in annotation ", gwc_exclusion))
 
     merged_annotations <- annotations %>% purrr::reduce(inner_join, by = "gene")
     exclusion_genes = merged_annotations[merged_annotations[,gwc_exclusion] == 1,"gene"]
-    print(paste0(length(exclusion_genes), " genes excluded from annotation"))
+    message(paste0(length(exclusion_genes), " genes excluded from annotation"))
     sumstats_edited = sumstats[!(sumstats$gene %in% exclusion_genes),]
 
     mu_genome = sum(sumstats_edited$w_t_beta)/sum(sumstats_edited$burden_score)
     per_gene_correction = mu_genome * sqrt(sumstats$burden_score)
     sumstats$gamma_sq = ((sumstats$w_t_beta / sqrt(sumstats$burden_score)) - per_gene_correction)^2
 
-    print(paste0("Mean genome-wide per allele effect size: ", signif(mu_genome, 2)))
+    message(paste0("Mean genome-wide per allele effect size: ", signif(mu_genome, 2)))
 
   } else  {
     mu_genome = sum(sumstats$w_t_beta)/sum(sumstats$burden_score)
     sumstats$gamma_sq = sumstats$w_t_beta^2/sumstats$burden_score
+  }
+  
+  #calculate lambda GC
+  chisq = (sumstats$N - 1) * (sumstats$gamma_sq)
+  median_chisq = quantile(chisq, 0.5)
+  lambda_gc = median_chisq/qchisq(0.5,1)
+  message(paste("Lambda GC: ", lambda_gc))
+  
+  #warnings if lambda GC is too high or low
+  if (lambda_gc > 0.5 & lambda_gc < 1.5){
+    message("...seems reasonable")
+  } else if (lambda_gc < 0.5){
+    message("Lambda GC seems very low. Please check input columns against documentation")
+  } else if (lambda_gc >1.5){
+    message("Lambda GC seems very high. Please check input columns against documentation")
   }
 
   if (num_null_conditions >0) {
@@ -117,8 +134,13 @@ BHR_h2 <- function(sumstats,
   sumstats_sig = sumstats[sumstats$true,][sig_chisq,]
   n_significant_genes = nrow(sumstats_sig)
   n_non_significant_genes = n_total_genes - n_significant_genes
-  print(paste0(n_total_genes," genes in the BHR regression, ",n_significant_genes," of which are significant fixed effects"))
+  message(paste0(n_total_genes," genes in the BHR regression, ",n_significant_genes," of which are significant fixed effects"))
   
+  if (n_significant_genes/n_total_genes > 0.1) {
+    message("A large fraction of genes are exome-wide significant. This may indicate that effect sizes and/or allele frequencies/variances have been miscomputed")
+  } else {
+    message("...seems reasonable")
+  }
   #Estimate h2 and h2_SE using only genes below GW threshold
   sumstats_sub = sumstats[!(sumstats$gene %in% sumstats_sig$gene),]
   block = ceiling((1:nrow(sumstats_sub))/(nrow(sumstats_sub)/num_blocks))
@@ -240,6 +262,18 @@ BHR_h2 <- function(sumstats,
     frac_sig = NA
     frac_sig_se = NA
   }
+  
+  #create significant genes output table
+  if ((nrow(sumstats_sig)) > 0) {
+    sig_table <- data.frame(gene = sumstats_sig$gene,
+                            varexplained = sumstats_sig$gamma_sq - subthreshold_genes_h2$intercept,
+                            cumulative_frequency = (2  - sqrt(4 - 8*sumstats_sig$burden_score))/4,
+                            number_variants = sapply(match(sumstats_sig$gene,sumstats$gene),
+                                                     function(gene) length(sumstats$variant_variances[[gene]])),
+                            mixed_burden_h2 = mixed_results$heritabilities["h2","total"],
+                            fraction_burdenh2 = (sumstats_sig$gamma_sq - subthreshold_genes_h2$intercept)/mixed_results$heritabilities["h2","total"])
+  } else {sig_table <- NA}
+  
 
   #calculate the attenuation ratio
   if (intercept) {
@@ -269,10 +303,6 @@ BHR_h2 <- function(sumstats,
   }
 
   #calculate lambda gc
-  chisq = (sumstats_true$N - 1) * (sumstats_true$gamma_sq)
-  median_chisq = quantile(chisq, 0.5)
-  lambda_gc = median_chisq/qchisq(0.5,1)
-
   jackknife_lambdagc = sapply(1:num_blocks, function(x) {
     quantile(chisq[block_true != x],0.5)/qchisq(0.5,1)
   })
@@ -290,7 +320,8 @@ BHR_h2 <- function(sumstats,
                    significant_genes = list(number_significant_genes = number_genomesig_genes,
                                             significant_genes = genomesig_genes,
                                             fraction_burdenh2_significant = frac_sig,
-                                            fraction_burdenh2_significant_se = frac_sig_se),
+                                            fraction_burdenh2_significant_se = frac_sig_se,
+                                            sig_table = sig_table),
                    qc = list(intercept = intercept,
                              intercept_se = intercept_se,
                              attenuation_ratio = attenuation_ratio,
@@ -299,7 +330,9 @@ BHR_h2 <- function(sumstats,
                              lambda_gc_se = lambda_gc_se,
                              mu_genome = mu_genome,
                              mean_gammasq = mean(sumstats_true$gamma_sq),
-                             mean_burdenscore = mean(sumstats_true$burden_score)))
+                             mean_burdenscore = mean(sumstats_true$burden_score),
+                             run_time = Sys.time() - start_time),
+                   log = log)
 
   } else {
     output <- list(subthreshold_genes = subthreshold_genes_h2,
@@ -307,7 +340,8 @@ BHR_h2 <- function(sumstats,
                    significant_genes = list(number_significant_genes = number_genomesig_genes,
                                             significant_genes = genomesig_genes,
                                             fraction_burdenh2_significant = frac_sig,
-                                            fraction_burdenh2_significant_se = frac_sig_se),
+                                            fraction_burdenh2_significant_se = frac_sig_se,
+                                            sig_table = sig_table),
                    qc = list(intercept = intercept,
                              intercept_se = intercept_se,
                              attenuation_ratio = attenuation_ratio,
@@ -316,7 +350,9 @@ BHR_h2 <- function(sumstats,
                              lambda_gc_se = lambda_gc_se,
                              mu_genome = mu_genome,
                              mean_gammasq = mean(sumstats_true$gamma_sq),
-                             mean_burdenscore = mean(sumstats_true$burden_score)))
+                             mean_burdenscore = mean(sumstats_true$burden_score),
+                             run_time = Sys.time() - start_time),
+                   log = log)
   }
 
   return(output)
