@@ -26,13 +26,15 @@ b) **Chromosome** (required column name: `chromosome`): The chromosome of the ge
 
 c) **Gene position in base pairs** (required column name: `gene_position`): The position of the gene in base pairs. Note that these values are only used to order genes to divide them into jackknife blocks, so minor variations due to genome build, TSS vs midpoint, etc., should not meaningfully change results.
 
-d) **Phenotype sample size** (required column name: `N`): Phenotype sample size in the association study
+d) **Phenotype sample size** (required column name: `N`): Phenotype sample size in the association study. In the case of a case/control association study, this number should be n_cases + n_controls.
 
-e) **Variant per-allele effect sizes** (required column name: `beta`): The per-allele effect size of the variant
+e) **Variant per-allele effect sizes** (required column name: `beta`): The per-allele effect size of the variant, e.g. in units of sd(phenotype)/sd(genotype), from a linear model. Note that, in the case of a case/control association study, inputting betas from a logistic regression will give incorrect output. Linear model per-allele effect sizes can be computed from case/control allele counts; see Equation 33 from the [BHR paper](https://www.medrxiv.org/content/10.1101/2022.07.06.22277335v2.full.pdf) and the [example using BipEx data](https://github.com/ajaynadig/bhr/tree/master/example)
 
 f) **Allele frequency** (required column name: `AF`): The frequency of the allele. Note: users may also provide the variance of the allele instead of the allele frequency, with a column named `variant_variance` and setting custom_variant_variances = TRUE. 
 
 g) **Phenotype name** (required column name: `phenotype_key`): Phenotype name, any string
+
+Note that having other columns with additional variant-level information will not interfere with the BHR analysis.
 
 *Example:*
 
@@ -49,7 +51,9 @@ g) **Phenotype name** (required column name: `phenotype_key`): Phenotype name, a
 
 2) *Baseline-BHR*
 
-Overview: A text file, with a row per gene and a column per gene set annotation, with elements equal to 1 to denote gene set membership and 0 otherwise. A *Baseline-BHR* file is required for `BHR`, as failure to control for LD-dependent architecture can lead to bias in heritability estimates (analogous to motivation for baseline model in LD Score Regression). We provide *Baseline-BHR* files with annotations corresponding to 1/5th of the observed/expected loss-of-function distribution (see manuscript and reference_files in this repository). `BHR` will also estimate genetic architecture parameters for annotations in the baseline model.
+Overview: A text file, with a row per gene and a column per gene set annotation, with elements equal to 1 to denote gene set membership and 0 otherwise. A *Baseline-BHR* file is required for `BHR`, as failure to control for frequency-dependent architecture can lead to bias in heritability estimates (analogous to motivation for baseline model in LD Score Regression). 
+
+We provide *Baseline-BHR* files with annotations corresponding to quintiles of the observed/expected loss-of-function distribution (see manuscript and reference_files in this repository). `BHR` will also estimate genetic architecture parameters for annotations in the baseline model.
 
 *Required variables*
 
@@ -97,15 +101,17 @@ b) **Gene membership annotations** (required column names: no restrictions): 1 o
 1) Univariate: estimate heritability and genetic architecture for a single phenotype
 2) Bivariate: estimate cross trait genetic correlation and genetic architecture
 
-**Important note about frequency-function filtering**
+**Important note about variant filtering by frequency and functional consequence**
 
-Variants profiled through exome sequencing span functional consequence (e.g., predicted loss-of-function, missense, synonymous) and orders of magnitude of allele frequency. When running `BHR`, we recommend partitioning variants into frequency-function bins, where an individual frequency-function bin is defined by a frequency (e.g., AF < 1e-5) and a function (predicted loss-of-function). We recommend this approach for multiple reasons:
+Variants profiled through exome sequencing span functional consequence (e.g., predicted loss-of-function, missense, synonymous) and orders of magnitude of allele frequency. Failure to account for these variant features can lead to biased inference. As such, when running `BHR`, we recommend partitioning variants into "frequency-function" bins, where an individual frequency-function bin is defined by a frequency (e.g., AF < 1e-5) and a function (predicted loss-of-function). We recommend this approach for multiple reasons:
 
 1) Improved interpretability
 2) Attenuation bias when analyzing a wide allele frequency range together, due to effect-size - frequency dependent architecture
 3) Attenuation bias from jointly analyzing variants with different effect sizes (e.g., predicted loss-of-function with synonymous).
 
-In the manuscript, we define frequency bins by order of magnutide (e.g., 1e-5 < AF < 1e-4).
+In the manuscript, we define frequency/function bins by order of AF magnutide (e.g., 1e-5 < AF < 1e-4) and PolyPhen2 predicted consequence.
+
+If you are interested in a "quick and dirty" first analysis without needing to run BHR for many bins in parallel, you may consider running BHR for only singleton LoF mutations. 
 
 **Univariate `BHR` analysis**
 
@@ -149,3 +155,27 @@ BHR(mode = "bivariate",
 The output of `bivariate` is an R object. Of interest to most users will be:
 
 1) `output_name$rg$rg_mixed` and `output_name$rg$rg_mixed_se`: Reports the burden h2 rg and burden h2 rg standard error for the trait pair
+
+**Optional flags**
+
+There are also many optional flags that can be included in the BHR analysis, that may be of interest to some users:
+
+1) `num_blocks`: The number of equally sized blocks of genes used to compute jackknife SE estimates. (Default:100)
+2) `genomewide_correction`: Whether to condition on the genome-wide burden in model. See "Minor-allele biased population stratification" in the methods section of the BHR paper. In practice, you may consider setting this flag to TRUE if you observe non-zero burden heritability for synonymous variants. (Default: FALSE)
+3) `gwc_exclusion`: Additional flag allowing user to specify if any annotations should be excluded from calculation of the genome-wide correction. Format is a list of column names from the baseline model or annotation files. For example, if you suspect that the bulk of highly constrained genes are causal for your phenotype, you may consider excluding "baseline_oe1_total5". (Default: NULL).
+4) `fixed_genes`: BHR models significant genes as fixed effects, and identifies those significant genes via a simple chi-squared test (see "Large-effect genes as fixed effects" in the methods section of the BHR paper). If you have identified significant genes via a more sophisticated approach (for example, using linear mixed models in SAIGE-GENE+), you can input a list of genes here, which BHR will then use for fixed-effects instead of performing the chi-squared test. (Default: NULL)
+5) `output_jackknife_h2`: Output leave-block-out jackknife heritability estimates. (Default: FALSE)
+6) `output_jackknife_rg`: Output leave-block-out jackknife covariance and correlation estimates. (Default: FALSE)
+7) `ss_list_trait1`: 
+8) `ss_list_trait2`: 
+9) `trait_list`:
+10) `overdispersion`: Include a term in the model that fits an overdispersion term. See Equation 10 in the BHR paper. In practice, overdispersion heritability inference in BHR is much less powerful than burden heritability inference, and modelling overdispersion can cause issues due to approximate colinearity with the intercept, so we do not model overdispersion by default, meaning that the intercept by default reflects both confounding and overdispersion (Default: FALSE)
+11) `all_models`: If TRUE, outputs results using only random-effects model (e.g. excluding significant/fixed genes), in addition to mixed model. (Default: FALSE)
+12) `slope_correction`: A user-specified correction to be made to the inferred regression coefficient. We made use of this flag to correct for LD, see "Accounting for LD" in the methods section of the BHR paper.
+13) `num_null_conditions`: BHR uses null moment conditions to effectively fix the intercept in such a way that very little true burden heritability signal leaks into the intercept, see "Independence assumption and selection-related bias" in methods section of the BHR paper. We found that 5 sets of null moment conditions works well (see Supplementary Figure 8 in BHR paper). Practically, you may consider increasing this number if you suspect that there is leakage of true burden heritability signal into intercept (e.g. if you observe a much higher intercept in LoF versus synonymous) (Default: 5)
+14) `custom_weights`: By default, BHR computes burden heritability with the simplest burden definition: the count of minor alleles (e.g. uniform weights). However, there are many possible choices of burden weights, and the best choice depends on the question of interest. See "Alternative burden definitions" in methods section of BHR paper. If this flag is TRUE, then BHR will expect to find a column in the summary statistics with name "custom_weights", that will be used to calculate burdens. (Default: FALSE)
+15) `null_stats`: If TRUE, BHR will randomly sign flip effect sizes to effectively eliminate burden heritability signal. This can be useful as a negative-control analysis, as there should be no burden heritability when using null burden statistics. (Default: FALSE)
+16) `intercept`: If FALSE, BHR will not fit an intercept. In the vast majority of cases, this is undesirable and will lead to inflated burden heritability estimates. (Default: TRUE)
+17) `custom_variant_variances`: In most cases, users will specify AF, and this will used to calculate variant variances. However, in some cases, users may not have access to allele frequencies, and will need to compute variance directly from other available parameters. If this flag is TRUE, BHR will expect a column in the summary statistics, "variant_variances", and will use these estimates to calculate burden weights and statistics. (Default: FALSE)
+
+
