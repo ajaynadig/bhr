@@ -9,4 +9,4 @@
 
 `BHR` is a utility implemented in R for estimating burden heritability and derived quantities, including gene set enrichments and genetic correlations.
 
-For documentation, please see the [wiki](https://github.com/ajaynadig/bhr/wiki).
+For documentation and an example analysis workflow, please see the [wiki](https://github.com/ajaynadig/bhr/wiki).
