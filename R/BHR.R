@@ -15,7 +15,7 @@ BHR <- function(mode = NULL,
                 all_models = FALSE,
                 slope_correction = NULL,
                 num_null_conditions = 5,
-                custom_weights = NULL,
+                custom_weights = FALSE,
                 null_stats = FALSE,
                 intercept = TRUE,
                 custom_variant_variances = FALSE) {
@@ -62,7 +62,7 @@ BHR <- function(mode = NULL,
   
   
   #compute w_t_beta, burden_score, and overdispersion from betas and variant_variances
-  if (is.null(custom_weights)){
+  if (custom_weights){
     if (null_stats) {
       trait1_sumstats$w_t_beta = sapply(1:nrow(trait1_sumstats), function(x) sum(trait1_sumstats$variant_variances[[x]]*trait1_sumstats$betas[[x]] * sample(c(-1,1),length(trait1_sumstats$betas[[x]]),replace = TRUE)))
     } else {
