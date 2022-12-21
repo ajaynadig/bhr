@@ -62,7 +62,7 @@ BHR <- function(mode = NULL,
   
   
   #compute w_t_beta, burden_score, and overdispersion from betas and variant_variances
-  if (custom_weights){
+  if (!custom_weights){
     if (null_stats) {
       trait1_sumstats$w_t_beta = sapply(1:nrow(trait1_sumstats), function(x) sum(trait1_sumstats$variant_variances[[x]]*trait1_sumstats$betas[[x]] * sample(c(-1,1),length(trait1_sumstats$betas[[x]]),replace = TRUE)))
     } else {
