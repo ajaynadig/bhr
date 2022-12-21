@@ -52,11 +52,11 @@ BHR_h2 <- function(sumstats,
   message(paste("Lambda GC: ", lambda_gc))
   
   #warnings if lambda GC is too high or low
-  if (lambda_gc > 0.5 & lambda_gc < 1.5){
+  if (lambda_gc > 0.5 & lambda_gc < 2){
     message("...seems reasonable")
   } else if (lambda_gc < 0.5){
     message("Lambda GC seems very low. Please check input columns against documentation")
-  } else if (lambda_gc >1.5){
+  } else if (lambda_gc >2){
     message("Lambda GC seems very high. Please check input columns against documentation")
   }
 
