@@ -2,11 +2,15 @@
 
 ![bhr_logo](https://github.com/ajaynadig/bhr/blob/master/BHR_logo.jpg?raw=true)
 
+*Burden Heritability Regression* (BHR) is a method to estimate the heritability explained by mutational burden in each gene, as well as gene-set enrichments and burden genetic correlations. BHR is described in detail in [here](https://www.medrxiv.org/content/10.1101/2022.07.06.22277335v1). 
 
+**Setting up `BHR` on your machine**
 
-# BHR
-*Burden Heritability Regression* (BHR) is a method to estimate the heritability explained by mutational burden in each gene. BHR is described in detail in [here](https://www.medrxiv.org/content/10.1101/2022.07.06.22277335v1). 
+This repository contains the `BHR` code. To download into an R session, run:
+`devtools::install_github("ajaynadig/bhr")`
 
-`BHR` is a utility implemented in R for estimating burden heritability and derived quantities, including gene set enrichments and genetic correlations.
+**Documentation**
 
 For documentation and an example analysis workflow, please see the [wiki](https://github.com/ajaynadig/bhr/wiki).
+
+We have also published other detailed scripts in the [`example`](https://github.com/ajaynadig/bhr/tree/master/example) folder, including scripts for downloading variant-level summary statistics from Genebass, scripts for running `BHR`, and scripts for generating the figures in the manuscript. Scripts for running the simulations in the manuscript are in the [`MATLAB`](https://github.com/ajaynadig/bhr/tree/master/MATLAB) folder.
