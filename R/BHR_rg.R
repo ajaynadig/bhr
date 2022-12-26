@@ -8,6 +8,7 @@ BHR_rg <- function(trait1_sumstats,
                    num_null_conditions = 0,
                    output_jackknife_rg = FALSE, 
                    fixed_genes = NULL,
+                   intercept = intercept,
                    log,
                    start_time) {
   trait1_sumstats = trait1_sumstats[!is.na(trait1_sumstats$chromosome),]
@@ -37,8 +38,8 @@ BHR_rg <- function(trait1_sumstats,
     sig_genes = fixed_genes
   }
 
-  heritability_trait1 <- BHR_h2(trait1_sumstats, annotations = annotations, num_blocks = num_blocks, fixed_genes = sig_genes, genomewide_correction = FALSE, output_jackknife_h2 = TRUE, overdispersion = overdispersion, num_null_conditions = 0, slope_correction = FALSE, all_models = TRUE, gwc_exclusion = NULL)
-  heritability_trait2 <- BHR_h2(trait2_sumstats, annotations = annotations, num_blocks = num_blocks, fixed_genes = sig_genes, genomewide_correction = FALSE,output_jackknife_h2 = TRUE, overdispersion = overdispersion, num_null_conditions = 0, slope_correction = FALSE, all_models = TRUE, gwc_exclusion = NULL)
+  heritability_trait1 <- BHR_h2(trait1_sumstats, annotations = annotations, num_blocks = num_blocks, fixed_genes = sig_genes, genomewide_correction = FALSE, output_jackknife_h2 = TRUE, overdispersion = overdispersion, num_null_conditions = 0, slope_correction = FALSE, all_models = TRUE, gwc_exclusion = NULL, intercept = intercept, start_time = Sys.time(), log = log)
+  heritability_trait2 <- BHR_h2(trait2_sumstats, annotations = annotations, num_blocks = num_blocks, fixed_genes = sig_genes, genomewide_correction = FALSE,output_jackknife_h2 = TRUE, overdispersion = overdispersion, num_null_conditions = 0, slope_correction = FALSE, all_models = TRUE, gwc_exclusion = NULL, intercept = intercept, start_time = Sys.time(), log = log)
   #add null moment conditions
   trait1_sumstats = trait1_sumstats[,c("gene","N","gamma_sq","gamma","w_t_beta","burden_score","burden_score_sqrt","overdispersion","chromosome","gene_position")]
   trait1_sumstats$true = TRUE
@@ -64,7 +65,7 @@ BHR_rg <- function(trait1_sumstats,
   pair_sumstats <- merge(pair_sumstats, merged_annotations, by.x = "gene", by.y = "gene")
   pair_sumstats = pair_sumstats[with(pair_sumstats, order(chromosome, gene_position)),]
   block = ceiling((1:nrow(pair_sumstats[!(pair_sumstats$gene %in% sig_genes),]))/(nrow(pair_sumstats[!(pair_sumstats$gene %in% sig_genes),])/num_blocks))
-  genetic_covariance_random <- randomeffects_jackknife(pair_sumstats[!(pair_sumstats$gene %in% sig_genes),],merged_annotations,num_blocks,block,genomewide_correction = genomewide_correction, output_jackknife_h2 = TRUE, overdispersion = overdispersion,slope_correction = FALSE, bivariate = TRUE)
+  genetic_covariance_random <- randomeffects_jackknife(pair_sumstats[!(pair_sumstats$gene %in% sig_genes),],merged_annotations,num_blocks,block,genomewide_correction = genomewide_correction, output_jackknife_h2 = TRUE, overdispersion = overdispersion,slope_correction = FALSE, bivariate = TRUE, intercept = intercept)
 
   pair_sumstats_true = pair_sumstats[pair_sumstats$true,]
   trait1_sumstats_true = trait1_sumstats[trait1_sumstats$true,]

@@ -192,7 +192,8 @@ BHR <- function(mode = NULL,
                     output_jackknife_rg = output_jackknife_rg,
                     fixed_genes = fixed_genes, 
                     log = log,
-                    start_time)
+                    intercept = intercept,
+                    start_time = start_time)
     message(paste0("BHR finished at ",Sys.time()))
     return(output)
   } else if (mode == "aggregate"){
