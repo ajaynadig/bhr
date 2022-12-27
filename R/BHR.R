@@ -71,21 +71,24 @@ BHR <- function(mode = NULL,
                                                                          chromosome = first(chromosome),
                                                                          gene_position = first(gene_position),
                                                                          N = first(N),
-                                                                         phenotype_key = first(phenotype_key))
+                                                                         phenotype_key = first(phenotype_key),
+                                                                         num_variants = length(variant_variance))
     } else{
       trait1_sumstats = trait1_sumstats %>% group_by(gene) %>% summarise(betas = list(beta),
                                                                          variant_variances = list(variant_variance),
                                                                          chromosome = first(chromosome),
                                                                          gene_position = first(gene_position),
                                                                          N = first(N),
-                                                                         phenotype_key = first(phenotype_key))
+                                                                         phenotype_key = first(phenotype_key),
+                                                                         num_variants = length(variant_variance))
       
       trait2_sumstats = trait2_sumstats %>% group_by(gene) %>% summarise(betas = list(beta),
                                                                          variant_variances = list(variant_variance),
                                                                          chromosome = first(chromosome),
                                                                          gene_position = first(gene_position),
                                                                          N = first(N),
-                                                                         phenotype_key = first(phenotype_key))
+                                                                         phenotype_key = first(phenotype_key),
+                                                                         num_variants = length(variant_variance))
     }
     
   

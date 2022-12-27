@@ -55,17 +55,17 @@ BHR_h2 <- function(sumstats,
   if (lambda_gc > 0.5 & lambda_gc < 2){
     message("...seems reasonable")
   } else if (lambda_gc < 0.5){
-    message("Lambda GC seems very low. Please check input columns against documentation")
+    message("Lambda GC seems low. Please check input columns against documentation")
   } else if (lambda_gc >2){
-    message("Lambda GC seems very high. Please check input columns against documentation")
+    message("Lambda GC seems high. Please check input columns against documentation")
   }
 
   if (num_null_conditions >0) {
-    nullstats = sumstats[,c("gene","N","overdispersion","chromosome","gene_position","variant_variances","betas")]
-    truestats = sumstats[,c("gene","N","gamma_sq","w_t_beta","burden_score","overdispersion","chromosome","gene_position")]
+    nullstats = sumstats[,c("gene","N","overdispersion","chromosome","gene_position","variant_variances","betas","num_variants")]
+    truestats = sumstats[,c("gene","N","gamma_sq","w_t_beta","burden_score","overdispersion","chromosome","gene_position","num_variants")]
     truestats$true = TRUE
   } else{
-    truestats = sumstats[,c("gene","N","gamma_sq","w_t_beta","burden_score","overdispersion","chromosome","gene_position")]
+    truestats = sumstats[,c("gene","N","gamma_sq","w_t_beta","burden_score","overdispersion","chromosome","gene_position","num_variants")]
     truestats$true = TRUE
   }
 
@@ -111,7 +111,7 @@ BHR_h2 <- function(sumstats,
       }
 
       nullstats$burden_score <- sapply(1:nrow(nullstats),get_null_burdenscore)
-      nullstats_out = nullstats[,c("gene","N","gamma_sq","w_t_beta","burden_score","overdispersion","chromosome","gene_position")]
+      nullstats_out = nullstats[,c("gene","N","gamma_sq","w_t_beta","burden_score","overdispersion","chromosome","gene_position","num_variants")]
       nullstats_out$true = FALSE
 
       sumstats = rbind(sumstats,nullstats_out)
@@ -264,12 +264,13 @@ BHR_h2 <- function(sumstats,
   }
   
   #create significant genes output table
+  
   if ((nrow(sumstats_sig)) > 0) {
     sig_table <- data.frame(gene = sumstats_sig$gene,
                             varexplained = sumstats_sig$gamma_sq - subthreshold_genes_h2$intercept,
                             cumulative_frequency = (2  - sqrt(4 - 8*sumstats_sig$burden_score))/4,
-                            number_variants = sapply(match(sumstats_sig$gene,sumstats$gene),
-                                                     function(gene) length(sumstats$variant_variances[[gene]])),
+                            number_variants = sapply(sumstats_sig$gene,
+                                                     function(gene) sumstats_true$num_variants[sumstats_true$gene == gene]),
                             mixed_burden_h2 = mixed_results$heritabilities["h2","total"],
                             fraction_burdenh2 = (sumstats_sig$gamma_sq - subthreshold_genes_h2$intercept)/mixed_results$heritabilities["h2","total"])
   } else {sig_table <- NA}
