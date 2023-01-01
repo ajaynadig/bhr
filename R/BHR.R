@@ -8,8 +8,7 @@ BHR <- function(mode = NULL,
                 fixed_genes = NULL,
                 output_jackknife_h2 = FALSE,
                 output_jackknife_rg = FALSE,
-                ss_list_trait1 = NULL,
-                ss_list_trait2 = NULL,
+                ss_list = NULL,
                 trait_list = NULL,
                 overdispersion = FALSE,
                 all_models = FALSE,
@@ -22,6 +21,25 @@ BHR <- function(mode = NULL,
   start_time = Sys.time()
   message("Burden Heritability Regression\nDaniel Weiner, Ajay Nadig, and Luke O'Connor, 2023")
   message(paste0("Running BHR at ",start_time))
+  
+  if (mode == "aggregate"){
+    output = BHR_meta(ss_list, 
+                      trait_list, 
+                      annotations, 
+                      num_blocks, 
+                      genomewide_correction, 
+                      fixed_genes,  
+                      overdispersion, 
+                      all_models, 
+                      num_null_conditions, 
+                      slope_correction, 
+                      gwc_exclusion,
+                      intercept,
+                      custom_variant_variances,
+                      start_time = start_time)
+    message(paste0("BHR finished at ",Sys.time()))
+    return(output)
+  } else {
   
   #Calculate variance variances from AF, if not provided
   if (custom_variant_variances == FALSE){
@@ -91,9 +109,6 @@ BHR <- function(mode = NULL,
                                                                          num_variants = length(variant_variance))
     }
     
-  
-  
-  
   
   #compute w_t_beta, burden_score, and overdispersion from betas and variant_variances
   if (!custom_weights){
@@ -199,26 +214,12 @@ BHR <- function(mode = NULL,
                     start_time = start_time)
     message(paste0("BHR finished at ",Sys.time()))
     return(output)
-  } else if (mode == "aggregate"){
-    output = BHR_meta(ss_list_trait1, 
-                      trait_list, 
-                      annotations, 
-                      num_blocks, 
-                      genomewide_correction, 
-                      fixed_genes,  
-                      overdispersion, 
-                      all_models, 
-                      num_null_conditions, 
-                      slope_correction, 
-                      gwc_exclusion)
-    message(paste0("BHR finished at ",Sys.time()))
-    return(output)
     } else {
       return("Please enter a valid mode among: ['univariate','bivariate','aggregate']")
       message(paste0("BHR finished at ",Sys.time()))
   }
-
   }
+}
 
 
 

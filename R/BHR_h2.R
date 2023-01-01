@@ -14,6 +14,7 @@ BHR_h2 <- function(sumstats,
                    intercept,
                    log,
                    start_time) {
+
   set.seed(363)
   #Step 1: Wrangling, functions, and other code relevant to both univariate and rg cases.
   
@@ -120,7 +121,7 @@ BHR_h2 <- function(sumstats,
 
   #wrangle annotations
   merged_annotations <- annotations %>% purrr::reduce(inner_join, by = "gene")
-
+  
   #Step 2: Calculate heritability of trait 1, and if univariate, return results.
   sumstats <- merge(sumstats, merged_annotations, by.x = "gene", by.y = "gene")
   sumstats = sumstats[with(sumstats, order(chromosome, gene_position)),]
@@ -309,6 +310,7 @@ BHR_h2 <- function(sumstats,
   })
   lambda_gc_se = sqrt(((num_blocks - 1)/num_blocks)*sum((jackknife_lambdagc - mean(jackknife_lambdagc))^2))
   
+  
   if (intercept) {
     intercept = subthreshold_genes_h2$intercept
     intercept_se = subthreshold_genes_h2$intercept_se
@@ -331,8 +333,8 @@ BHR_h2 <- function(sumstats,
                              lambda_gc_se = lambda_gc_se,
                              mu_genome = mu_genome,
                              mean_gammasq = mean(sumstats_true$gamma_sq),
-                             mean_burdenscore = mean(sumstats_true$burden_score),
-                             run_time = Sys.time() - start_time),
+                             mean_burdenscore = mean(sumstats_true$burden_score)),
+                             #run_time = Sys.time() - start_time),
                    log = log)
 
   } else {
@@ -351,8 +353,8 @@ BHR_h2 <- function(sumstats,
                              lambda_gc_se = lambda_gc_se,
                              mu_genome = mu_genome,
                              mean_gammasq = mean(sumstats_true$gamma_sq),
-                             mean_burdenscore = mean(sumstats_true$burden_score),
-                             run_time = Sys.time() - start_time),
+                             mean_burdenscore = mean(sumstats_true$burden_score)),
+                             #run_time = Sys.time() - start_time),
                    log = log)
   }
 
