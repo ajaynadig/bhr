@@ -11,6 +11,6 @@ This repository contains the `BHR` code. To download into an R session, run:
 
 **Documentation**
 
-For documentation and an example analysis workflow, please see the [wiki](https://github.com/ajaynadig/bhr/wiki).
+For documentation and example BHR workflows, please see the [wiki](https://github.com/ajaynadig/bhr/wiki).
 
 We have also published other detailed scripts in the [`example`](https://github.com/ajaynadig/bhr/tree/master/example) folder, including scripts for downloading variant-level summary statistics from Genebass, scripts for running `BHR`, and scripts for generating the figures in the manuscript. Scripts for running the simulations in the manuscript are in the [`MATLAB`](https://github.com/ajaynadig/bhr/tree/master/MATLAB) folder.
