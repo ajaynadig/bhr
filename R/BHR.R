@@ -35,7 +35,7 @@ BHR <- function(mode = NULL,
                       slope_correction, 
                       gwc_exclusion,
                       intercept,
-                      custom_variant_variances,
+                      custom_variant_variances = custom_variant_variances,
                       start_time = start_time)
     message(paste0("BHR finished at ",Sys.time()))
     return(output)

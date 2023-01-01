@@ -23,7 +23,7 @@ BHR_meta <- function(ss_list, trait_list, annotations, num_blocks, genomewide_co
     
     if (custom_variant_variances == FALSE){
       ss_file_name$variant_variance = 2*ss_file_name$AF*(1-ss_file_name$AF)
-      } 
+    } 
     
     for (trait in trait_list){ #Aggregate over mean
       ss_use <- ss_file_name[ss_file_name$phenotype_key == trait,]
