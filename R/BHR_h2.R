@@ -49,7 +49,7 @@ BHR_h2 <- function(sumstats,
   chisq = (sumstats$N - 1) * (sumstats$gamma_sq)
   median_chisq = quantile(chisq, 0.5)
   lambda_gc = median_chisq/qchisq(0.5,1)
-  message(paste("Lambda GC: ", lambda_gc))
+  message(paste("Lambda GC: ", signif(lambda_gc, 4)))
   
   #warnings if lambda GC is too high or low
   if (lambda_gc > 0.5 & lambda_gc < 2){
