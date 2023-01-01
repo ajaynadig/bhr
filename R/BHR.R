@@ -20,7 +20,7 @@ BHR <- function(mode = NULL,
                 intercept = TRUE,
                 custom_variant_variances = FALSE) {
   start_time = Sys.time()
-  message("Burden Heritability Regression\nDaniel Weiner, Ajay Nadig, and Luke O'Connor, 2022")
+  message("Burden Heritability Regression\nDaniel Weiner, Ajay Nadig, and Luke O'Connor, 2023")
   message(paste0("Running BHR at ",start_time))
   
   #Calculate variance variances from AF, if not provided
