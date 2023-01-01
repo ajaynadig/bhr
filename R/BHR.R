@@ -35,7 +35,7 @@ BHR <- function(mode = NULL,
   
   #Check range of allele frequencies
   allele_frequencies_trait1 = (2  - sqrt(4 - 8*trait1_sumstats$variant_variance))/4
-  allele_frequencies_trait2 = (2  - sqrt(4 - 8*trait1_sumstats$variant_variance))/4
+  allele_frequencies_trait2 = (2  - sqrt(4 - 8*trait2_sumstats$variant_variance))/4
   
   max_frequency_trait1 = max(allele_frequencies_trait1)
   min_frequency_trait1 = min(allele_frequencies_trait1)
@@ -54,7 +54,7 @@ BHR <- function(mode = NULL,
     min_frequency_trait2 = min(allele_frequencies_trait2)
     diff_log10_trait2 = log10(max_frequency_trait2) - log10(min_frequency_trait2)
     
-    message(paste("For trait 1, MAF ranges from", as.character(signif(min_frequency_trait2,2)),"to", as.character(signif(max_frequency_trait2,2))))
+    message(paste("For trait 2, MAF ranges from", as.character(signif(min_frequency_trait2,2)),"to", as.character(signif(max_frequency_trait2,2))))
     
     if (diff_log10_trait2 <=2){
       message("...seems reasonable")
