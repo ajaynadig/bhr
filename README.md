@@ -2,7 +2,7 @@
 
 ![bhr_logo](https://github.com/ajaynadig/bhr/blob/master/BHR_logo.jpg?raw=true)
 
-*Burden Heritability Regression* (BHR) is a method to estimate the heritability explained by mutational burden in each gene, as well as gene-set enrichments and burden genetic correlations. BHR is described in detail in [here](https://www.medrxiv.org/content/10.1101/2022.07.06.22277335v1). 
+*Burden Heritability Regression* (BHR) is a method to estimate the heritability explained by mutational burden in each gene, as well as gene-set enrichments and burden genetic correlations. BHR is described in detail in [here](https://www.nature.com/articles/s41586-022-05684-z). 
 
 **Setting up `BHR` on your machine**
 
