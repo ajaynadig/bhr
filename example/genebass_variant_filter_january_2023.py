@@ -3,7 +3,6 @@ import hail as hl
 def bhr_genebass_variant_to_gene_lof_syn(var_type, upper_bound, lower_bound, name):
     #Load variants and phenotype files
     genebass_variant = hl.read_matrix_table('gs://ukbb-exome-public/500k/results/variant_results.mt')
-    genebass_variant = genebass_variant.key_rows_by(genebass_variant.markerID)
     genebass_variant = genebass_variant.rename({'AF.Cases': 'AF_Cases', 'AF.Controls': 'AF_Controls'})
     genebass_variant = genebass_variant.key_cols_by(genebass_variant.phenocode, genebass_variant.coding_description)
     bhr_phenotypes = hl.import_table('~/ms_phenotype_sheet.txt', #This sheet is Supplementary Table 4 from the manuscript
