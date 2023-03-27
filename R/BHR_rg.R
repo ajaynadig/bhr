@@ -6,6 +6,7 @@ BHR_rg <- function(trait1_sumstats,
                    genomewide_correction = TRUE,
                    overdispersion, 
                    num_null_conditions = 0,
+                   use_null_conditions_rg = FALSE,
                    output_jackknife_rg = FALSE, 
                    fixed_genes = NULL,
                    intercept = intercept,
@@ -38,8 +39,13 @@ BHR_rg <- function(trait1_sumstats,
     sig_genes = fixed_genes
   }
 
-  heritability_trait1 <- BHR_h2(trait1_sumstats, annotations = annotations, num_blocks = num_blocks, fixed_genes = sig_genes, genomewide_correction = FALSE, output_jackknife_h2 = TRUE, overdispersion = overdispersion, num_null_conditions = 0, slope_correction = FALSE, all_models = TRUE, gwc_exclusion = NULL, intercept = intercept, start_time = Sys.time(), log = log)
-  heritability_trait2 <- BHR_h2(trait2_sumstats, annotations = annotations, num_blocks = num_blocks, fixed_genes = sig_genes, genomewide_correction = FALSE,output_jackknife_h2 = TRUE, overdispersion = overdispersion, num_null_conditions = 0, slope_correction = FALSE, all_models = TRUE, gwc_exclusion = NULL, intercept = intercept, start_time = Sys.time(), log = log)
+  if (use_null_conditions_rg) {
+    heritability_trait1 <- BHR_h2(trait1_sumstats, annotations = annotations, num_blocks = num_blocks, fixed_genes = sig_genes, genomewide_correction = FALSE, output_jackknife_h2 = TRUE, overdispersion = overdispersion, num_null_conditions = num_null_conditions, slope_correction = FALSE, all_models = TRUE, gwc_exclusion = NULL, intercept = intercept, start_time = Sys.time(), log = log)
+    heritability_trait2 <- BHR_h2(trait2_sumstats, annotations = annotations, num_blocks = num_blocks, fixed_genes = sig_genes, genomewide_correction = FALSE,output_jackknife_h2 = TRUE, overdispersion = overdispersion, num_null_conditions = num_null_conditions, slope_correction = FALSE, all_models = TRUE, gwc_exclusion = NULL, intercept = intercept, start_time = Sys.time(), log = log)
+  } else { 
+    heritability_trait1 <- BHR_h2(trait1_sumstats, annotations = annotations, num_blocks = num_blocks, fixed_genes = sig_genes, genomewide_correction = FALSE, output_jackknife_h2 = TRUE, overdispersion = overdispersion, num_null_conditions = 0, slope_correction = FALSE, all_models = TRUE, gwc_exclusion = NULL, intercept = intercept, start_time = Sys.time(), log = log)
+    heritability_trait2 <- BHR_h2(trait2_sumstats, annotations = annotations, num_blocks = num_blocks, fixed_genes = sig_genes, genomewide_correction = FALSE,output_jackknife_h2 = TRUE, overdispersion = overdispersion, num_null_conditions = 0, slope_correction = FALSE, all_models = TRUE, gwc_exclusion = NULL, intercept = intercept, start_time = Sys.time(), log = log)
+    }
   #add null moment conditions
   trait1_sumstats = trait1_sumstats[,c("gene","N","gamma_sq","gamma","w_t_beta","burden_score","burden_score_sqrt","overdispersion","chromosome","gene_position")]
   trait1_sumstats$true = TRUE
