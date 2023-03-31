@@ -10,7 +10,7 @@ def bhr_genebass_variant_to_gene_lof_syn(var_type, upper_bound, lower_bound, nam
     bhr_phenotypes = bhr_phenotypes.key_by(bhr_phenotypes.phenocode, bhr_phenotypes.coding_description)
     genebass_variant = genebass_variant.semi_join_cols(bhr_phenotypes)
     genebass_variant = genebass_variant.annotate_cols(**bhr_phenotypes[genebass_variant.phenocode, genebass_variant.coding_description])
-    genebass_variant.filter_cols(genebass_variant.phenotype_key == "50NA", keep = True)
+    genebass_variant = genebass_variant.filter_cols(genebass_variant.phenotype_key == "50NA", keep = True)
     
     #Filter variants and count
     genebass_variant = genebass_variant.filter_rows((genebass_variant.call_stats.AF < upper_bound) & (genebass_variant.call_stats.AF >= lower_bound), keep=True)
