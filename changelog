@@ -1,0 +1,6 @@
+BHR Changelog
+
+5/31/23
+Previously, for the random effects genetic covariance model in BHR, we used a jackknife estimator of the variance of the genetic correlation. In the low power regime, it was noted that this imposed the strong requirement that all leave-block-out estimates of heritability be positive. 
+
+To address this issue, we implemented a delta method estimator of the genetic correlation variation, which can be accessed with the flag rg_random_se_estimator = "delta". The jackknife estimator is used by default with rg_random_se_estimator = "jackknife". We may consider making the delta method estimator the default in the future.
