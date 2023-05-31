@@ -10,6 +10,7 @@ BHR_rg <- function(trait1_sumstats,
                    output_jackknife_rg = FALSE, 
                    fixed_genes = NULL,
                    intercept = intercept,
+                   rg_random_se_estimator = "jackknife",
                    log,
                    start_time) {
   trait1_sumstats = trait1_sumstats[!is.na(trait1_sumstats$chromosome),]
@@ -93,8 +94,25 @@ BHR_rg <- function(trait1_sumstats,
   rho_jackknife = genetic_covariance_random$jackknife_h2[nrow(genetic_covariance_random$jackknife_h2),]
   h2_trait1_jackknife = heritability_trait1$subthreshold_genes$jackknife_h2[nrow(heritability_trait1$subthreshold_genes$jackknife_h2),]
   h2_trait2_jackknife = heritability_trait2$subthreshold_genes$jackknife_h2[nrow(heritability_trait2$subthreshold_genes$jackknife_h2),]
-  rg_jackknife = rho_jackknife/sqrt(h2_trait1_jackknife * h2_trait2_jackknife)
-  rg_random_se = sqrt(((num_blocks-1)/num_blocks) * sum((rg_jackknife - mean(rg_jackknife))^2))
+  
+  if (rg_random_se_estimator == "delta") {
+  gradient_rg_subthreshold = c(1/sqrt(h2_trait1_random*h2_trait2_random),
+                  (-rho_random*h2_trait2_random)/(2 * (h2_trait1_random*h2_trait2_random)^(-3/2)),
+                  (-rho_random*h2_trait1_random)/(2 * (h2_trait1_random*h2_trait2_random)^(-3/2)))
+  
+  jackknife_rg_subthreshold_mat = cbind(rho_jackknife - mean(rho_jackknife), h2_trait1_jackknife - mean(h2_trait1_jackknife),h2_trait2_jackknife - mean(h2_trait2_jackknife))
+  S_rg_subthreshold = ((num_blocks-1)/num_blocks)*(t(jackknife_rg_subthreshold_mat) %*% jackknife_rg_subthreshold_mat)
+  
+  print(dim(S_rg_subthreshold))
+  rg_random_var = t(gradient_rg_subthreshold) %*% S_rg_subthreshold %*% gradient_rg_subthreshold
+  rg_random_se = sqrt(rg_random_var)
+  
+  } else if (rg_random_se_estimator == "jackknife") {
+    rg_jackknife = rho_jackknife/sqrt(h2_trait1_jackknife * h2_trait2_jackknife)
+    rg_random_se = sqrt(((num_blocks-1)/num_blocks) * sum((rg_jackknife - mean(rg_jackknife))^2))
+    
+  }
+  
 
 
   if (length(sig_genes) > 0) {

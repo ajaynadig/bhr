@@ -18,7 +18,8 @@ BHR <- function(mode = NULL,
                 custom_weights = FALSE,
                 null_stats = FALSE,
                 intercept = TRUE,
-                custom_variant_variances = FALSE) {
+                custom_variant_variances = FALSE,
+                rg_random_se_estimator = "jackknife") {
   start_time = Sys.time()
   message("Burden Heritability Regression\nDaniel Weiner, Ajay Nadig, and Luke O'Connor, 2023")
   message(paste0("Running BHR at ",start_time))
@@ -211,6 +212,7 @@ BHR <- function(mode = NULL,
                     use_null_conditions_rg = use_null_conditions_rg,
                     output_jackknife_rg = output_jackknife_rg,
                     fixed_genes = fixed_genes, 
+                    rg_random_se_estimator = rg_random_se_estimator,
                     log = log,
                     intercept = intercept,
                     start_time = start_time)
