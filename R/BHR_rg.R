@@ -103,7 +103,6 @@ BHR_rg <- function(trait1_sumstats,
   jackknife_rg_subthreshold_mat = cbind(rho_jackknife - mean(rho_jackknife), h2_trait1_jackknife - mean(h2_trait1_jackknife),h2_trait2_jackknife - mean(h2_trait2_jackknife))
   S_rg_subthreshold = ((num_blocks-1)/num_blocks)*(t(jackknife_rg_subthreshold_mat) %*% jackknife_rg_subthreshold_mat)
   
-  print(dim(S_rg_subthreshold))
   rg_random_var = t(gradient_rg_subthreshold) %*% S_rg_subthreshold %*% gradient_rg_subthreshold
   rg_random_se = sqrt(rg_random_var)
   
