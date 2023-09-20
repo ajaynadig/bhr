@@ -139,9 +139,16 @@ BHR_h2 <- function(sumstats,
   
   if (n_significant_genes/n_total_genes > 0.1) {
     message("A large fraction of genes are exome-wide significant. This may indicate that effect sizes and/or allele frequencies/variances have been miscomputed")
-  } else {
-    message("...seems reasonable")
   }
+
+  if (n_total_genes < 100) {
+    message("Too few genes in the BHR regression; BHR will not run")
+  } else if (n_total_genes < 1000) {
+    message("Suspiciously low number of genes in BHR regression")
+  } else {
+    message("Number of genes in BHR regression seems reasonable")
+  }
+                      
   #Estimate h2 and h2_SE using only genes below GW threshold
   sumstats_sub = sumstats[!(sumstats$gene %in% sumstats_sig$gene),]
   block = ceiling((1:nrow(sumstats_sub))/(nrow(sumstats_sub)/num_blocks))
