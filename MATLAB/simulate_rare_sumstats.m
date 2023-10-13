@@ -1,10 +1,10 @@
-function [genes, variants] = ...
+function [genes, variants, X, yy, popn] = ...
     simulate_rare_sumstats(nn,gg,mm_per_gene,...
     sigmasqSupport,varargin)
 %simulate_rare_sumstats simulates rare variant summary statistics
 %(gene-level and variant-level) with negative selection and no LD, and true
 %effect sizes drawn from a mixture of normal distributions
-% 
+%
 %   Output arguments
 %   genes: gene-level summary statistics as a structure with fields:
 %       burdenStatistic: sample correlation between Y and gene minor allele
@@ -15,9 +15,9 @@ function [genes, variants] = ...
 %       noVariants: maximum number of variants (denominator of constraint)
 %       noVariantsThreshold: number of variants within MAF bin if specified
 %       pqbar: mean heterozygosity of variants in gene within MAF bin
-% 
+%
 %   variants: variant-level summary statistics as a structure.
-%       
+%
 %   Required input arguments:
 %   nn: association study sample size
 %   gg: number of genes
@@ -29,11 +29,11 @@ function [genes, variants] = ...
 %   null genes, small-effect genes, and large-effect genes with effect size
 %   variants 10x that of the small-effect genes. Specify optional h2Target
 %   to avoid having to put these values on an appropriate scale.
-%   
+%
 %   Optional input arguments:
 %   h2Target: desired heritability for variants in the specified AF range
 %   maxAF: maximum AF of variants to report sumstats for (effect sizes will
-%   also be drawn for other variants but won't be used to compute gene 
+%   also be drawn for other variants but won't be used to compute gene
 %   burden statistics)
 %   minAF: minimum AF of variants to report sumstats for
 %   sigmasqPrior: mixture weight for each element of sigmasqSupport. Gene
@@ -61,7 +61,7 @@ function [genes, variants] = ...
 %   for the relationship between effect sizes and selection coefficients
 %   noTraits: the number of traits under selection. These are given
 %   independent genetic architectures, and results are only reported for
-%   one of them, but all of them affect the selection coefficients equally;
+%   one of them, but all of them affect the selection coeffi gcients equally;
 %   see Simons et al. 2018 PloS Bio
 %   nn_AFS: sample size for calculating allele frequency spectrum
 %   (recommended to use default value, which is the study sample size)
@@ -83,6 +83,11 @@ addOptional(p, 'meanNs', 0, @isscalar)
 addOptional(p, 'selectionModel', 'stabilizing', @isstr)
 addOptional(p, 'noTraits', 1, @(x)isscalar(x) && x>=1)
 addOptional(p, 'nn_AFS', nn, @isscalar)
+addOptional(p, 'migration_graph', [], @ismatrix)
+addOptional(p, 'deme_population_size', [], @iscolumn)
+addOptional(p, 'no_generations', [], @isscalar)
+addOptional(p, 'mutation_rate', [], @isscalar)
+addOptional(p, 'deme_mean_phenotype', [], @iscolumn)
 
 parse(p, nn, gg, mm_per_gene, sigmasqSupport, varargin{:});
 
@@ -97,7 +102,7 @@ noAnnot = size(annot,2);
 if size(sigmasqPrior) ~= [noAnnot, length(sigmasqSupport)]
     error('prior for sigmasq should have size number of annotations x number of components')
 end
-    
+
 % allele frequencies within each gene
 if isscalar(mm_per_gene)
     mm_per_gene = mm_per_gene * ones(gg,1);
@@ -121,9 +126,9 @@ for t = 1:noTraits
         annotSigmasq(:) = randsample(overdispSupport,gg,true,sigmasqPrior(k,:));
         geneoverdispsigmasq = geneoverdispsigmasq + annot(:,k) .* annotSigmasq;
     end
-    
+
     geneMeanEffect = randn(gg,1) .* sqrt(genesigmasq);
-    
+
     beta = geneMeanEffect(variants.gene) + ...
         randn(mm_tot,1) .* sqrt(geneoverdispsigmasq(variants.gene));
     if strcmp(p.Results.selectionModel,'stabilizing')
@@ -139,14 +144,92 @@ variants.Ns = variants.Ns * p.Results.meanNs / mean(variants.Ns);
 % variant effect sizes
 variants.effectPerAllele = beta;
 
-% Allele frequencies
+% Simulate allele frequencies directly
 variants.AF = nonneutral_af(2 * nn_AFS, variants.Ns);
+variants.het = (2 * variants.AF .* (1-variants.AF));
 
-incl = variants.AF <= p.Results.maxAF & variants.AF >= p.Results.minAF;
+% Simulate allele frequencies using forward simulations
+if ~isempty(migration_graph)
+    migration_graph = migration_graph ./sum(migration_graph,2);
+    noDemes = length(deme_population_size);
+    ss = variants.Ns' / sum(deme_population_size);
+    AF = repmat(variants.AF',noDemes,1);
+    for gen = 1:no_generations
+        AF = simulateGeneration(AF,deme_population_size,migration_graph,mutation_rate * ones(size(ss)),ss);
+    end
+    variants.AF = sum(AF .* deme_population_size)' / sum(deme_population_size);
+end
 
-% heterozygosity
-het = @(x)2*x.*(1-x);
-variants.het = het(variants.AF);
+if isempty(migration_graph)
+    variants.effect = variants.effectPerAllele .* sqrt(variants.het);
+
+    % add pop strat
+    variants.effectEstimate = variants.effect + popStratMean...
+        + randn(mm_tot,1) * sqrt(popStratVar);
+    
+    % add sampling noise
+    variants.effectEstimate = variants.effectEstimate + randn(mm_tot,1) / sqrt(nn);
+else
+    nn_per_deme = mnrnd(nn,deme_population_size/sum(deme_population_size));
+    counter = 0;
+    X = zeros(nn,mm_tot,'int8');
+    yy = zeros(nn,1);
+    popn = yy;
+    for deme = 1:noDemes
+        X(counter+1:counter+nn_per_deme(deme),:) = binornd(...
+            2*ones(nn_per_deme(deme),mm_tot),...
+            AF(deme,:) .* ones(nn_per_deme(deme),1));
+        popn(counter+1:counter+nn_per_deme(deme)) = deme;
+        counter = counter + nn_per_deme(deme);
+    end
+    
+    % New allele frequencies
+    variants.AF = mean(X)/2;
+    variants.het = (2 * variants.AF .* (1-variants.AF))';
+    
+end
+
+incl = variants.AF <= p.Results.maxAF & variants.AF > p.Results.minAF;
+if sum(incl) == 0
+    error('No variants sampled in allele frequency bin')
+elseif sum(incl) < 1e-3 * mm_tot
+    warning('Very few variants sampled in allele frequency bin')
+end
+variants.effectPerAllele(~incl) = 0;
+
+if ~isempty(migration_graph)
+    
+    % genetic component
+    counter = 0;
+    for deme = 1:noDemes
+        yy(counter+1:counter+nn_per_deme(deme)) = ...
+            single(X(counter+1:counter+nn_per_deme(deme),:))...
+            * variants.effectPerAllele;
+        counter = counter + nn_per_deme(deme);
+    end
+    % normalize to mean zero/variance h2
+    yy = yy - mean(yy);
+    if ~isempty(h2Target)
+        yy = yy / std(yy) * sqrt(h2Target);
+    end
+    
+    % add population stratification effects
+    counter = 0;
+    for deme = 1:noDemes
+        yy(counter+1:counter+nn_per_deme(deme)) = ...
+            yy(counter+1:counter+nn_per_deme(deme)) + deme_mean_phenotype(deme);
+        counter = counter + nn_per_deme(deme);
+    end
+    yy = yy - mean(yy);
+    
+    if var(yy) < 1
+        yy = yy + randn(nn,1) * sqrt(1 - var(yy));
+    else
+        error('Y should have variance < 1; check that deme_mean_phenotype makes sense');
+    end
+    variants.effectEstimate = corr(single(X),yy);
+    variants.effectEstimate(isnan(variants.effectEstimate)) = 0;
+end
 
 % per-normalized-genotype effects
 variants.effect = variants.effectPerAllele .* sqrt(variants.het);
@@ -156,15 +239,7 @@ h2Burden = sum(geneMeanEffect(variants.gene(incl)).^2 .* variants.het(incl));
 if ~isempty(h2Target)
     variants.effect = variants.effect * sqrt(h2Target/h2Burden);
     variants.effectPerAllele = variants.effectPerAllele * sqrt(h2Target/h2Burden);
-    h2Burden = h2Target;
 end
-
-% add pop strat
-variants.effectEstimate = variants.effect + popStratMean...
-    + randn(mm_tot,1) * sqrt(popStratVar);
-
-% add sampling noise
-variants.effectEstimate = variants.effectEstimate + randn(mm_tot,1) / sqrt(nn);
 
 % estimated constraint level for each gene
 temp = [0;cumsum(variants.het)];
@@ -195,7 +270,6 @@ burdenEffect(2:end) = temp(1+cumsum(mm_per_gene_threshold));
 burdenEffect = burdenEffect(2:end) - burdenEffect(1:end-1);
 genes.burdenEffect = burdenEffect ./sqrt(genes.burdenScore);
 genes.burdenEffect(isnan(genes.burdenEffect)) = 0;
-
 
 % overdispersion scores
 temp = [0;cumsum(variants.het(incl).^2)];
