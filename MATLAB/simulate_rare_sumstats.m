@@ -74,7 +74,7 @@ addRequired(p, 'sigmasqSupport', @isvector)
 addOptional(p, 'h2Target', [], @(x)isscalar(x) || isempty(x))
 addOptional(p, 'maxAF', 1, @isscalar)
 addOptional(p, 'minAF', 0, @isscalar)
-addOptional(p, 'sigmasqPrior', 1, @(x)all(sum(x,2)==1) && size(x,2)==length(sigmasqSupport))
+addOptional(p, 'sigmasqPrior', 1, @(x)size(x,2)==length(sigmasqSupport))
 addOptional(p, 'overdispSupport', zeros(size(sigmasqSupport)), @(x)all(size(x)==size(sigmasqSupport)))
 addOptional(p, 'annot', ones(gg,1), @(x)size(x,1)==gg)
 addOptional(p, 'popStratVar', 0, @isscalar)
@@ -82,9 +82,8 @@ addOptional(p, 'popStratMean', 0, @isscalar)
 addOptional(p, 'meanNs', 0, @isscalar)
 addOptional(p, 'selectionModel', 'stabilizing', @isstr)
 addOptional(p, 'noTraits', 1, @(x)isscalar(x) && x>=1)
-addOptional(p, 'nn_AFS', nn, @isscalar)
 addOptional(p, 'migration_graph', [], @ismatrix)
-addOptional(p, 'deme_population_size', [], @iscolumn)
+addOptional(p, 'deme_population_size', [], @ismatrix)
 addOptional(p, 'no_generations', [], @isscalar)
 addOptional(p, 'mutation_rate', [], @isscalar)
 addOptional(p, 'deme_mean_phenotype', [], @iscolumn)
@@ -145,24 +144,49 @@ variants.Ns = variants.Ns * p.Results.meanNs / mean(variants.Ns);
 variants.effectPerAllele = beta;
 
 % Simulate allele frequencies directly
+if ~isempty(migration_graph)
+    nn_AFS = max(deme_population_size(:,1));
+else
+    nn_AFS = nn;
+end
 variants.AF = nonneutral_af(2 * nn_AFS, variants.Ns);
-variants.het = (2 * variants.AF .* (1-variants.AF));
 
 % Simulate allele frequencies using forward simulations
 if ~isempty(migration_graph)
     migration_graph = migration_graph ./sum(migration_graph,2);
-    noDemes = length(deme_population_size);
-    ss = variants.Ns' / sum(deme_population_size);
+    noDemes = size(deme_population_size,1);
+    ss = variants.Ns' / sum(deme_population_size(:,end));
     AF = repmat(variants.AF',noDemes,1);
-    for gen = 1:no_generations
-        AF = simulateGeneration(AF,deme_population_size,migration_graph,mutation_rate * ones(size(ss)),ss);
+    if size(deme_population_size,2) == 1
+        deme_population_size = deme_population_size * ones(1,no_generations);
     end
-    variants.AF = sum(AF .* deme_population_size)' / sum(deme_population_size);
+    for gen = 1:no_generations
+        AF = simulateGeneration(AF,deme_population_size(:,gen),migration_graph,mutation_rate * ones(size(ss)),ss);
+    end
+    variants.AF = sum(AF .* deme_population_size(:,end),1)' / sum(deme_population_size(:,end),1);
 end
 
-if isempty(migration_graph)
-    variants.effect = variants.effectPerAllele .* sqrt(variants.het);
+variants.het = (2 * variants.AF .* (1-variants.AF));
 
+% Return allele frequencies only
+if nn == 0
+    genes = [];
+    return
+end
+
+
+% per-normalized-genotype effects
+variants.effect = variants.effectPerAllele .* sqrt(variants.het);
+
+if isempty(migration_graph)
+    incl = variants.AF <= p.Results.maxAF & variants.AF > p.Results.minAF;
+
+    % true h2
+    h2Burden = sum(geneMeanEffect(variants.gene(incl)).^2 .* variants.het(incl));
+    if ~isempty(h2Target)
+        variants.effect = variants.effect * sqrt(h2Target/h2Burden);
+        variants.effectPerAllele = variants.effectPerAllele * sqrt(h2Target/h2Burden);
+    end
     % add pop strat
     variants.effectEstimate = variants.effect + popStratMean...
         + randn(mm_tot,1) * sqrt(popStratVar);
@@ -170,7 +194,7 @@ if isempty(migration_graph)
     % add sampling noise
     variants.effectEstimate = variants.effectEstimate + randn(mm_tot,1) / sqrt(nn);
 else
-    nn_per_deme = mnrnd(nn,deme_population_size/sum(deme_population_size));
+    nn_per_deme = mnrnd(nn,deme_population_size(:,end)/sum(deme_population_size(:,end)));
     counter = 0;
     X = zeros(nn,mm_tot,'int8');
     yy = zeros(nn,1);
@@ -196,6 +220,8 @@ elseif sum(incl) < 1e-3 * mm_tot
     warning('Very few variants sampled in allele frequency bin')
 end
 variants.effectPerAllele(~incl) = 0;
+variants.effect(~incl) = 0;
+variants.effectEstimate(~incl) = 0;
 
 if ~isempty(migration_graph)
     
@@ -231,15 +257,6 @@ if ~isempty(migration_graph)
     variants.effectEstimate(isnan(variants.effectEstimate)) = 0;
 end
 
-% per-normalized-genotype effects
-variants.effect = variants.effectPerAllele .* sqrt(variants.het);
-
-% true h2
-h2Burden = sum(geneMeanEffect(variants.gene(incl)).^2 .* variants.het(incl));
-if ~isempty(h2Target)
-    variants.effect = variants.effect * sqrt(h2Target/h2Burden);
-    variants.effectPerAllele = variants.effectPerAllele * sqrt(h2Target/h2Burden);
-end
 
 % estimated constraint level for each gene
 temp = [0;cumsum(variants.het)];
