@@ -97,8 +97,8 @@ BHR_rg <- function(trait1_sumstats,
   
   if (rg_random_se_estimator == "delta") {
   gradient_rg_subthreshold = c(1/sqrt(h2_trait1_random*h2_trait2_random),
-                  (-rho_random*h2_trait2_random)/(2 * (h2_trait1_random*h2_trait2_random)^(-3/2)),
-                  (-rho_random*h2_trait1_random)/(2 * (h2_trait1_random*h2_trait2_random)^(-3/2)))
+                  (-rho_random*h2_trait2_random)/(2 * (h2_trait1_random*h2_trait2_random)^(3/2)),
+                  (-rho_random*h2_trait1_random)/(2 * (h2_trait1_random*h2_trait2_random)^(3/2)))
   
   jackknife_rg_subthreshold_mat = cbind(rho_jackknife - mean(rho_jackknife), h2_trait1_jackknife - mean(h2_trait1_jackknife),h2_trait2_jackknife - mean(h2_trait2_jackknife))
   S_rg_subthreshold = ((num_blocks-1)/num_blocks)*(t(jackknife_rg_subthreshold_mat) %*% jackknife_rg_subthreshold_mat)
