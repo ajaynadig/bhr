@@ -72,6 +72,7 @@ addRequired(p, 'gg', @isscalar)
 addRequired(p, 'mm_per_gene', @(x)isscalar(x) || all(size(x)==[gg,1]))
 addRequired(p, 'sigmasqSupport', @isvector)
 addOptional(p, 'h2Target', [], @(x)isscalar(x) || isempty(x))
+addOptional(p, 'fractionEffectsPositive', 0.5, @(x)isscalar(x))
 addOptional(p, 'maxAF', 1, @isscalar)
 addOptional(p, 'minAF', 0, @isscalar)
 addOptional(p, 'sigmasqPrior', 1, @(x)size(x,2)==length(sigmasqSupport))
@@ -127,6 +128,11 @@ for t = 1:noTraits
     end
 
     geneMeanEffect = randn(gg,1) .* sqrt(genesigmasq);
+
+    % Set approximate fraction of positive vs. negative effects
+    if fractionEffectsPositive ~= 0.5
+        geneMeanEffect = abs(geneMeanEffect) .* (-1) .^ (rand(gg,1) > fractionEffectsPositive);
+    end
 
     beta = geneMeanEffect(variants.gene) + ...
         randn(mm_tot,1) .* sqrt(geneoverdispsigmasq(variants.gene));
