@@ -240,12 +240,12 @@ BHR_h2 <- function(sumstats,
     #point estimate
 
     #standard error through delta method
-    u = sqrt((sumstats_sig$gamma_sq - subthreshold_genes_h2$intercept))
-    u_t_u = t(u) %*% u
+    u = sqrt((sumstats_sig$gamma_sq))
+    u_t_u =( t(u) %*% u)
     h = subthreshold_genes_h2$heritabilities[1,ncol(merged_annotations)]
     
     #compute fraction explained by significant genes
-    frac_sig = u_t_u/mixed_h2[ncol(merged_annotations)]
+    frac_sig = (u_t_u- (length(u) * subthreshold_genes_h2$intercept))/mixed_h2[ncol(merged_annotations)]
 
     dg_duks <- sapply(1:nrow(sumstats_sig), function(k) {
       partial = ((-u_t_u * 2*u[k])/(u_t_u + h)^2) + ((2*u[k])/(u_t_u + h))
