@@ -217,8 +217,12 @@ end
 if isempty(migration_graph)
 
     % true h2
-    h2Burden = sum(geneMeanEffect(variants.gene(incl)).^2 .* variants.het(incl));
-    multiplier = sqrt(h2Target/h2Burden);
+    if h2Target > 0
+        h2Burden = sum(geneMeanEffect(variants.gene(incl)).^2 .* variants.het(incl));
+        multiplier = sqrt(h2Target/h2Burden);
+    else
+        multiplier = 1;
+    end
 
     if ~isempty(h2Target)
         variants.effect = variants.effect * multiplier;
@@ -249,7 +253,6 @@ if isempty(migration_graph)
         % Observed scale h2
         h2_obs = sum((penetrance(incl)-disease_prevalence).^2 .* variants.het(incl)) / ...
             (disease_prevalence * (1-disease_prevalence));
-        disp(["Expected observed-scale h2:", num2str(h2_obs)])
 
         % Approximate binomial sampling for speed
         variants.AF_cases = approx_binornd(allele_count, penetrance) / (2*nn*disease_prevalence);
