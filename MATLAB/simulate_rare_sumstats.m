@@ -374,7 +374,7 @@ genes.noVariantsThreshold = mm_per_gene_threshold';
             pen(heterozygosity==0) = 0;
             current_observed_scale_h2 = sum((pen-prevalence).^2 .* heterozygosity) / ...
                 (prevalence * (1-prevalence));
-            effect_size = effect_size * sqrt(desired_h2_obs / current_observed_scale_h2);
+            effect_size = effect_size * (1 + sqrt(desired_h2_obs / current_observed_scale_h2)) / 2;
         end
         multiplier = sum(abs(effect_size)) / initial_sum;
 
