@@ -227,12 +227,14 @@ if isempty(migration_graph)
     if ~isempty(h2Target)
         variants.effect = variants.effect * multiplier;
         variants.effectPerAllele = variants.effectPerAllele * multiplier;
+        geneMeanEffect = geneMeanEffect * multiplier;
     end
     if disease_prevalence > 0
         multiplier = calibrate_case_control_effects(...
             variants.effectPerAllele(incl), variants.het(incl), h2Target, disease_prevalence);
         variants.effect = variants.effect * multiplier;
         variants.effectPerAllele = variants.effectPerAllele * multiplier;
+        geneMeanEffect = geneMeanEffect * multiplier;
     end
 
     % add pop strat
@@ -255,12 +257,18 @@ if isempty(migration_graph)
             (disease_prevalence * (1-disease_prevalence));
 
         % Approximate binomial sampling for speed
-        variants.AF_cases = approx_binornd(allele_count, penetrance) / (2*nn*disease_prevalence);
+        AC_cases = approx_binornd(allele_count, penetrance);
+        AC_controls = allele_count - AC_cases;
+        variants.AF_cases = AC_cases / (2*nn*disease_prevalence);
 
         % Sample correlation
         variants.effectEstimate = ...
             2 * (variants.AF_cases-variants.AF).*disease_prevalence ./ ...
             sqrt(2 * disease_prevalence*(1-disease_prevalence)*variants.AF.*(1-variants.AF));
+
+        % Case/control allele counts
+        genes.AC_cases = aggregate_by_gene(AC_cases, mm_per_gene);
+        genes.AC_controls = aggregate_by_gene(AC_controls, mm_per_gene);
     end
 else
     nn_per_deme = mnrnd(nn,deme_population_size(:,end)/sum(deme_population_size(:,end)));
@@ -321,6 +329,8 @@ if ~isempty(migration_graph)
     variants.effectEstimate(isnan(variants.effectEstimate)) = 0;
 end
 
+% per-allele burden effect
+genes.burdenEffectPerAllele = geneMeanEffect;
 
 % estimated constraint level for each gene
 genes.constraint = aggregate_by_gene(variants.het, mm_per_gene);
