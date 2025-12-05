@@ -23,4 +23,8 @@ x(i3) = randn(sum(i3(:)),1) .* ...
     + p(i3).* N(i3);
 x(i3) = max(0,min(N(i3),round(x(i3))));
 
+% small N: just use binomial sampling
+i4 = N < 100;
+x(i4) = binornd(round(N(i4)), p(i4));
+
 end

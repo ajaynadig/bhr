@@ -65,7 +65,7 @@ function [genes, variants, X, yy, popn] = ...
 %   see Simons et al. 2018 PloS Bio
 %   nn_AFS: sample size for calculating allele frequency spectrum
 %   (recommended to use default value, which is the study sample size)
-%   disease_prevalence: if this is not zero (the default), then a 
+%   disease_prevalence: if this is not zero (the default), then a
 %   binary trait is simulated with the specified prevalence, instead
 %   of a quantitative trait.
 
@@ -221,7 +221,7 @@ if isempty(migration_graph)
         h2Burden = sum(geneMeanEffect(variants.gene(incl)).^2 .* variants.het(incl));
         multiplier = sqrt(h2Target/h2Burden);
     else
-        multiplier = 1;
+        multiplier = 0;
     end
 
     if ~isempty(h2Target)
@@ -248,9 +248,12 @@ if isempty(migration_graph)
         allele_count = 2*nn*variants.AF;
 
         % P(case|variant)
-        penetrance = exp(variants.effectPerAllele) * disease_prevalence;
-        % penetrance = exp(variants.effectEstimate ./ sqrt(variants.het)) * disease_prevalence;
+        % penetrance = exp(variants.effectPerAllele) * disease_prevalence;
+        penetrance = exp(variants.effectEstimate ./ sqrt(variants.het)) * disease_prevalence;
         penetrance(variants.het==0) = 0;
+        penetrance = max(0,min(1,penetrance));
+        disp('SD of penetrance: ')
+        disp(std(penetrance(variants.het>0)))
 
         % Observed scale h2
         h2_obs = sum((penetrance(incl)-disease_prevalence).^2 .* variants.het(incl)) / ...
@@ -333,7 +336,7 @@ end
 genes.burdenEffectPerAllele = geneMeanEffect;
 
 % estimated constraint level for each gene
-genes.constraint = aggregate_by_gene(variants.het, mm_per_gene);
+genes.constraint = aggregate_by_gene(variants.het, mm_per_gene) ./ mm_per_gene;
 
 % variant counts after MAF threshold
 mm_per_gene_threshold = histcounts(categorical(variants.gene(incl),1:gg));
@@ -391,4 +394,3 @@ genes.noVariantsThreshold = mm_per_gene_threshold';
     end
 
 end
-
