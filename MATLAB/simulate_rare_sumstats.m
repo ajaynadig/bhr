@@ -139,10 +139,10 @@ variants.gene = repelem((1:gg)',mm_per_gene);
 % is kept; others are just used to determine selection coefficients. Traits
 % are independent except for shared enrichments if annotations specified
 annotSigmasq = zeros(gg,1);
-genesigmasq = annotSigmasq;
-geneoverdispsigmasq = annotSigmasq;
 variants.Ns = 0;
 for t = 1:noTraits
+    genesigmasq = zeros(gg,1);
+    geneoverdispsigmasq = zeros(gg,1);
     for k = 1:noAnnot
         annotSigmasq(:) = randsample(sigmasqSupport,gg,true,sigmasqPrior(k,:));
         genesigmasq = genesigmasq + annot(:,k) .* annotSigmasq;
