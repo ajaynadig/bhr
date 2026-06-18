@@ -180,7 +180,8 @@ BHR_rg <- function(trait1_sumstats,
 
     rg_mixed_se = sqrt(t(gradient) %*% S %*% gradient)
 
-    rho_mixed_se = sqrt(jackknife_heritabilities_covariancematrix[1,1] + (genetic_covariance_random$intercept * length(sig_genes)))
+    rho_gradient = c(v[1:length(sig_genes)],u[1:length(sig_genes)],1,0,0)
+    rho_mixed_se = sqrt(drop(t(rho_gradient) %*% S %*% rho_gradient))
 
   } else {
     rg_mixed = rg_random
