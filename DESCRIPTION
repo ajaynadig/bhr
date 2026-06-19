@@ -10,3 +10,5 @@ License: What license is it under?
 Encoding: UTF-8
 LazyData: true
 Imports: dplyr,purrr
+Suggests: testthat
+Config/testthat/edition: 3
