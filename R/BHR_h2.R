@@ -163,13 +163,28 @@ BHR_h2 <- function(sumstats,
   #Estimate h2 and h2_SE using the mixed model
   if (nrow(sumstats_sig) > 0){
 
-    fixed_annotation_h2 = (sumstats_sig$gamma_sq) %*% as.matrix(sumstats_sig[,(ncol(sumstats_sig)-ncol(merged_annotations)+2):ncol(sumstats_sig)])
+    fixed_annotation_matrix <- as.matrix(sumstats_sig[,(ncol(sumstats_sig)-ncol(merged_annotations)+2):ncol(sumstats_sig)])
+    fixed_annotation_h2 = (sumstats_sig$gamma_sq) %*% fixed_annotation_matrix
     fixed_h2_out <- c(fixed_annotation_h2, sum(sumstats_sig$gamma_sq))
+    fixed_gene_noise <- if (intercept) {
+      rep(subthreshold_genes_h2$intercept, nrow(sumstats_sig))
+    } else {
+      1 / sumstats_sig$N
+    }
 
-    fixed_annotation_se = ((4*(sumstats_sig$gamma_sq))/sumstats_sig$N) %*% as.matrix(sumstats_sig[,(ncol(sumstats_sig)-ncol(merged_annotations)+2):ncol(sumstats_sig)])
-    fixed_var_out <- c(fixed_annotation_se, sum((4*(sumstats_sig$gamma_sq))/sumstats_sig$N)) + (4/sumstats_sig$N[1]^2)
+    fixed_annotation_se = ((4*(sumstats_sig$gamma_sq))/sumstats_sig$N) %*% fixed_annotation_matrix
+    fixed_noise_var_out <- if (intercept) {
+      rep(4/sumstats_sig$N[1]^2, ncol(merged_annotations))
+    } else {
+      c(as.numeric(colSums(4 * fixed_annotation_matrix / sumstats_sig$N^2)), sum(4 / sumstats_sig$N^2))
+    }
+    fixed_var_out <- c(fixed_annotation_se, sum((4*(sumstats_sig$gamma_sq))/sumstats_sig$N)) + fixed_noise_var_out
 
-    sampling_noise_correction_factor = c(as.numeric((colSums((as.matrix(sumstats_sig[,(ncol(sumstats_sig)-ncol(merged_annotations)+2):ncol(sumstats_sig)]))))), nrow(sumstats_sig))/sumstats_true$N[1]
+    sampling_noise_correction_factor = if (intercept) {
+      c(as.numeric((colSums(fixed_annotation_matrix))), nrow(sumstats_sig))/sumstats_true$N[1]
+    } else {
+      c(as.numeric(colSums(fixed_annotation_matrix / sumstats_sig$N)), sum(1 / sumstats_sig$N))
+    }
     mixed_h2 = subthreshold_genes_h2$heritabilities[1,1:ncol(merged_annotations)] + fixed_h2_out - sampling_noise_correction_factor
     mixed_h2_se = sqrt(subthreshold_genes_h2$heritabilities[2,1:ncol(merged_annotations)]^2 + fixed_var_out)
 
@@ -186,7 +201,7 @@ BHR_h2 <- function(sumstats,
     #then, use delta method to get SEs
     #first, create covariance matrix of fixed effects and random effects
     #covariance matrix of fixed effects
-    fixed_covariance = diag(nrow(sumstats_sig)) * subthreshold_genes_h2$intercept
+    fixed_covariance = diag(fixed_gene_noise, nrow = length(fixed_gene_noise))
 
     get_mixed_fraction_SEs <- function(annot_index){
       jackknife_fractions <- t(subthreshold_genes_h2$jackknife_h2[c(annot_index,nrow(subthreshold_genes_h2$jackknife_h2)),])
@@ -245,7 +260,7 @@ BHR_h2 <- function(sumstats,
     h = subthreshold_genes_h2$heritabilities[1,ncol(merged_annotations)]
     
     #compute fraction explained by significant genes
-    frac_sig = (u_t_u- (length(u) * subthreshold_genes_h2$intercept))/mixed_h2[ncol(merged_annotations)]
+    frac_sig = (u_t_u- sum(fixed_gene_noise))/mixed_h2[ncol(merged_annotations)]
 
     dg_duks <- sapply(1:nrow(sumstats_sig), function(k) {
       partial = ((-u_t_u * 2*u[k])/(u_t_u + h)^2) + ((2*u[k])/(u_t_u + h))
@@ -254,7 +269,7 @@ BHR_h2 <- function(sumstats,
     dg_dh <- -u_t_u/((u_t_u+h)^2)
     gradient = c(dg_duks,dg_dh)
 
-    fixed_covar = subthreshold_genes_h2$intercept*diag(nrow(sumstats_sig))
+    fixed_covar = diag(fixed_gene_noise, nrow = length(fixed_gene_noise))
     S = matrix(data = 0, nrow = nrow(sumstats_sig)+1, ncol = nrow(sumstats_sig)+1)
     S[1:nrow(sumstats_sig), 1:nrow(sumstats_sig)] <- fixed_covar
     S[nrow(S), nrow(S)] <- subthreshold_genes_h2$heritabilities[2,ncol(merged_annotations)]^2
@@ -263,8 +278,8 @@ BHR_h2 <- function(sumstats,
     frac_sig_se = sqrt(t(gradient) %*% S %*% gradient)
   }
 
-  #If no genome-wide significant genes, or if no intercept is fit, then set mixed results to same as subthreshold genes model
-  if (nrow(sumstats_sig) == 0 | intercept == FALSE){
+  #If no genome-wide significant genes, then set mixed results to same as subthreshold genes model
+  if (nrow(sumstats_sig) == 0){
     mixed_results <- subthreshold_genes_h2
     number_genomesig_genes <- 0
     genomesig_genes <- NA
@@ -276,12 +291,12 @@ BHR_h2 <- function(sumstats,
   
   if ((nrow(sumstats_sig)) > 0) {
     sig_table <- data.frame(gene = sumstats_sig$gene,
-                            varexplained = sumstats_sig$gamma_sq - subthreshold_genes_h2$intercept,
+                            varexplained = sumstats_sig$gamma_sq - fixed_gene_noise,
                             cumulative_frequency = (2  - sqrt(4 - 8*sumstats_sig$burden_score))/4,
                             number_variants = sapply(sumstats_sig$gene,
                                                      function(gene) sumstats_true$num_variants[sumstats_true$gene == gene]),
                             mixed_burden_h2 = mixed_results$heritabilities["h2","total"],
-                            fraction_burdenh2 = (sumstats_sig$gamma_sq - subthreshold_genes_h2$intercept)/mixed_results$heritabilities["h2","total"])
+                            fraction_burdenh2 = (sumstats_sig$gamma_sq - fixed_gene_noise)/mixed_results$heritabilities["h2","total"])
   } else {sig_table <- NA}
   
 
